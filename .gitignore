@@ -1,0 +1,43 @@
+# Virtual environment
+venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Streamlit
+.streamlit/
+
+# VS Code
+.vscode/
+
+# Environment files
+.env
+*.env
+
+# Uploaded and generated project files
+uploads/*
+audio/*
+transcripts/*
+notes/*
+quizzes/*
+flashcards/*
+pdfs/*
+
+# Keep empty folders in Git
+!uploads/.gitkeep
+!audio/.gitkeep
+!transcripts/.gitkeep
+!notes/.gitkeep
+!quizzes/.gitkeep
+!flashcards/.gitkeep
+!pdfs/.gitkeep
+
+# Temporary files
+*.tmp
+*.log
+.DS_Store
+Thumbs.db
