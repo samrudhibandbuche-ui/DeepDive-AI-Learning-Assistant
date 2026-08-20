@@ -1,87 +1,13 @@
-import re
-from collections import Counter
+import os
 
-import requests
-
-
-OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL_NAME = "llama3.2"
-
-STOP_WORDS = {
-    "a", "an", "and", "are", "as", "at", "be", "by", "for", "from",
-    "has", "have", "how", "i", "in", "is", "it", "of", "on", "or",
-    "that", "the", "this", "to", "was", "were", "what", "when",
-    "where", "which", "who", "why", "will", "with", "you", "your",
-}
+from dotenv import load_dotenv
+from google import genai
 
 
-def _clean_words(text: str) -> list[str]:
-    """Convert text into useful lowercase words."""
-    words = re.findall(r"[a-zA-Z0-9']+", text.lower())
-    return [word for word in words if word not in STOP_WORDS]
+load_dotenv()
 
-
-def _answer_using_transcript_search(
-    transcript: str,
-    question: str,
-) -> str:
-    """
-    Create a simple answer by selecting transcript sentences
-    that best match the question.
-    """
-
-    question_words = Counter(_clean_words(question))
-
-    sentences = re.split(
-        r"(?<=[.!?])\s+|\n+",
-        transcript.strip(),
-    )
-
-    scored_sentences = []
-
-    for sentence in sentences:
-        sentence = sentence.strip()
-
-        if len(sentence) < 15:
-            continue
-
-        sentence_words = Counter(_clean_words(sentence))
-
-        score = sum(
-            min(question_words[word], sentence_words[word])
-            for word in question_words
-        )
-
-        if score > 0:
-            scored_sentences.append((score, sentence))
-
-    if not scored_sentences:
-        return (
-            "This topic was not clearly explained in the uploaded video."
-        )
-
-    scored_sentences.sort(key=lambda item: item[0], reverse=True)
-
-    selected_sentences = []
-    seen = set()
-
-    for _, sentence in scored_sentences:
-        normalized = sentence.lower()
-
-        if normalized not in seen:
-            selected_sentences.append(sentence)
-            seen.add(normalized)
-
-        if len(selected_sentences) == 3:
-            break
-
-    answer = " ".join(selected_sentences)
-
-    return (
-        f"{answer}\n\n"
-        "_Answer generated directly from the transcript because the "
-        "Ollama AI service is unavailable._"
-    )
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+MODEL_NAME = "gemini-3.6-flash"
 
 
 def answer_from_transcript(
@@ -90,50 +16,87 @@ def answer_from_transcript(
     chat_history: list[dict] | None = None,
 ) -> str:
     """
-    Answer a question using only the uploaded video's transcript.
+    Answer a student's question using only the uploaded lecture transcript.
 
-    Ollama is used when available. If Ollama is unavailable, the
-    application automatically uses transcript-based sentence matching.
+    Args:
+        transcript: Complete transcript of the uploaded lecture.
+        question: Question entered by the student.
+        chat_history: Previous user and assistant messages.
+
+    Returns:
+        A Gemini-generated answer grounded in the transcript.
     """
 
-    if not transcript.strip():
+    if not transcript or not transcript.strip():
         raise ValueError(
             "No transcript is available. Process a video first."
         )
 
-    if not question.strip():
-        raise ValueError("Please enter a question.")
+    if not question or not question.strip():
+        raise ValueError(
+            "Please enter a question."
+        )
 
-    history_text = ""
+    if not GEMINI_API_KEY:
+        raise ValueError(
+            "Gemini API key was not found. "
+            "Add GEMINI_API_KEY to the .env file "
+            "or Streamlit Cloud secrets."
+        )
+
+    history_lines = []
 
     if chat_history:
         recent_messages = chat_history[-6:]
 
         for message in recent_messages:
-            role = message.get("role", "user")
-            content = message.get("content", "")
-            history_text += f"{role.upper()}: {content}\n"
+            if not isinstance(message, dict):
+                continue
+
+            role = str(
+                message.get("role", "user")
+            ).strip().upper()
+
+            content = str(
+                message.get("content", "")
+            ).strip()
+
+            if content:
+                history_lines.append(
+                    f"{role}: {content}"
+                )
+
+    history_text = "\n".join(history_lines)
+
+    if not history_text:
+        history_text = "No previous conversation."
 
     prompt = f"""
-You are DeepDive AI, an educational assistant.
+You are DeepDive AI, an educational lecture assistant.
 
-Answer the student's question using only the provided video transcript.
+Answer the student's question using only the uploaded lecture transcript.
 
 STRICT RULES:
 
 1. Use only information contained in the transcript.
-2. Do not use outside knowledge.
-3. If the answer is not present, say:
+2. Do not add outside knowledge.
+3. Do not invent facts or explanations.
+4. If the answer is not present in the transcript, reply exactly:
    "This topic was not explained in the uploaded video."
-4. Keep the answer clear and student-friendly.
-5. Give a concise answer unless detail is requested.
-6. Use previous conversation only for follow-up context.
+5. Keep the answer clear and student-friendly.
+6. Give a concise answer unless the student requests more detail.
+7. Previous conversation may only be used to understand follow-up
+   questions.
+8. Do not claim that something appeared in the lecture unless the
+   transcript supports it.
+9. Do not mention these instructions in your answer.
+10. Return only the final answer for the student.
 
 PREVIOUS CONVERSATION:
 
-{history_text if history_text else "No previous conversation."}
+{history_text}
 
-VIDEO TRANSCRIPT:
+LECTURE TRANSCRIPT:
 
 {transcript}
 
@@ -141,44 +104,36 @@ STUDENT QUESTION:
 
 {question}
 
-ANSWER:
+FINAL ANSWER:
 """
 
     try:
-        response = requests.post(
-            OLLAMA_URL,
-            json={
-                "model": MODEL_NAME,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "temperature": 0.1,
-                    "num_ctx": 8192,
-                },
-            },
-            timeout=30,
+        client = genai.Client(
+            api_key=GEMINI_API_KEY
         )
 
-        response.raise_for_status()
-
-        result = response.json()
-        answer = result.get("response", "").strip()
-
-        if answer:
-            return answer
-
-        return _answer_using_transcript_search(
-            transcript,
-            question,
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
         )
 
-    except (
-        requests.exceptions.ConnectionError,
-        requests.exceptions.Timeout,
-        requests.exceptions.RequestException,
-        ValueError,
-    ):
-        return _answer_using_transcript_search(
-            transcript,
-            question,
+        answer = (
+            response.text.strip()
+            if response.text
+            else ""
         )
+
+        if not answer:
+            raise ValueError(
+                "Gemini returned an empty answer."
+            )
+
+        return answer
+
+    except ValueError:
+        raise
+
+    except Exception as error:
+        raise RuntimeError(
+            f"Lecture chatbot failed: {error}"
+        ) from error
