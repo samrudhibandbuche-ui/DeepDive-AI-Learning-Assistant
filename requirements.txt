@@ -1,0 +1,11 @@
+streamlit==1.61.1
+openai-whisper==20250625
+moviepy==2.2.1
+imageio-ffmpeg==0.6.0
+torch==2.3.0
+numpy==2.4.6
+pandas==3.0.5
+reportlab==5.0.0
+requests==2.34.2
+python-dotenv==1.2.3
+tiktoken==0.14.0
