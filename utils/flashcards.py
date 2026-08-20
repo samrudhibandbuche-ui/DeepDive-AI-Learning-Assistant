@@ -1,11 +1,15 @@
 import json
-import re
+import os
 
-import requests
+from dotenv import load_dotenv
+from google import genai
+from google.genai import types
 
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL_NAME = "llama3.2"
+load_dotenv()
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+MODEL_NAME = "gemini-3.6-flash"
 
 
 FLASHCARD_SCHEMA = {
@@ -18,140 +22,171 @@ FLASHCARD_SCHEMA = {
             "items": {
                 "type": "object",
                 "properties": {
-                    "front": {"type": "string"},
-                    "back": {"type": "string"},
+                    "front": {
+                        "type": "string",
+                    },
+                    "back": {
+                        "type": "string",
+                    },
                 },
-                "required": ["front", "back"],
+                "required": [
+                    "front",
+                    "back",
+                ],
             },
         },
     },
-    "required": ["flashcards"],
+    "required": [
+        "flashcards",
+    ],
 }
 
 
-def _fallback_flashcards(transcript: str) -> list[dict]:
-    """Generate simple flashcards directly from the transcript."""
+def _validate_flashcards(
+    parsed_response: dict,
+) -> list[dict]:
+    """Validate and format flashcards returned by Gemini."""
 
-    sentences = re.split(
-        r"(?<=[.!?])\s+|\n+",
-        transcript.strip(),
-    )
-
-    sentences = [
-        sentence.strip()
-        for sentence in sentences
-        if len(sentence.strip()) > 30
-    ]
-
-    if len(sentences) < 5:
+    if not isinstance(parsed_response, dict):
         raise ValueError(
-            "The transcript is too short to generate flashcards."
+            "Gemini returned an invalid flashcard format."
         )
 
-    flashcards = []
+    flashcards = parsed_response.get("flashcards")
 
-    for number, sentence in enumerate(sentences[:10], start=1):
-        flashcards.append(
+    if not isinstance(flashcards, list):
+        raise ValueError(
+            "Gemini did not return a flashcards list."
+        )
+
+    validated_flashcards = []
+    seen_fronts = set()
+
+    for card in flashcards:
+        if not isinstance(card, dict):
+            continue
+
+        front = str(
+            card.get("front", "")
+        ).strip()
+
+        back = str(
+            card.get("back", "")
+        ).strip()
+
+        normalized_front = front.lower()
+
+        if not front or not back:
+            continue
+
+        if normalized_front in seen_fronts:
+            continue
+
+        seen_fronts.add(normalized_front)
+
+        validated_flashcards.append(
             {
-                "front": f"Revision concept {number}",
-                "back": sentence,
+                "front": front,
+                "back": back,
             }
         )
 
-    while len(flashcards) < 10:
-        source_card = flashcards[
-            len(flashcards) % len(flashcards)
-        ]
-
-        flashcards.append(
-            {
-                "front": f"Revision concept {len(flashcards) + 1}",
-                "back": source_card["back"],
-            }
+    if len(validated_flashcards) != 10:
+        raise ValueError(
+            f"Gemini generated only "
+            f"{len(validated_flashcards)} valid flashcards "
+            "instead of 10. Please try again."
         )
 
-    return flashcards
+    return validated_flashcards
 
 
-def generate_flashcards(transcript: str) -> list[dict]:
-    """Generate ten structured revision flashcards."""
+def generate_flashcards(
+    transcript: str,
+) -> list[dict]:
+    """Generate exactly ten revision flashcards using Gemini."""
 
     if not transcript.strip():
-        raise ValueError("The transcript is empty.")
+        raise ValueError(
+            "The transcript is empty."
+        )
+
+    if not GEMINI_API_KEY:
+        raise ValueError(
+            "Gemini API key was not found. "
+            "Add GEMINI_API_KEY to the .env file "
+            "or Streamlit secrets."
+        )
 
     prompt = f"""
-Create exactly 10 study flashcards based only on the transcript.
+You are DeepDive AI, an educational flashcard-generation assistant.
+
+Create exactly 10 high-quality study flashcards using only the lecture
+transcript below.
 
 Requirements:
 
-- Each flashcard must contain a short front question or concept.
-- Each back must contain a clear and accurate answer.
-- Use only information from the transcript.
-- Avoid duplicate flashcards.
-- Keep the language student-friendly.
-- Return the information using the required JSON structure.
+1. Generate exactly 10 flashcards.
+2. Each flashcard must contain:
+   - front: a short question, term, or concept.
+   - back: a clear and accurate answer.
+3. Use only information contained in the transcript.
+4. Do not use outside knowledge.
+5. Do not repeat flashcards.
+6. Cover different important parts of the lecture.
+7. Keep the language simple and student-friendly.
+8. Make the flashcards useful for revision.
+9. Avoid answers that are unnecessarily long.
+10. Return the result using the required JSON structure.
 
-TRANSCRIPT:
+LECTURE TRANSCRIPT:
 
 {transcript}
 """
 
     try:
-        response = requests.post(
-            OLLAMA_URL,
-            json={
-                "model": MODEL_NAME,
-                "prompt": prompt,
-                "stream": False,
-                "format": FLASHCARD_SCHEMA,
-                "options": {
-                    "temperature": 0,
-                    "num_ctx": 4096,
-                },
-            },
-            timeout=30,
+        client = genai.Client(
+            api_key=GEMINI_API_KEY
         )
 
-        response.raise_for_status()
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=FLASHCARD_SCHEMA,
+            ),
+        )
 
-        raw_response = response.json().get(
-            "response",
-            "",
-        ).strip()
+        raw_response = (
+            response.text.strip()
+            if response.text
+            else ""
+        )
 
         if not raw_response:
-            return _fallback_flashcards(transcript)
+            raise ValueError(
+                "Gemini returned empty flashcard data."
+            )
 
-        parsed_response = json.loads(raw_response)
-        flashcards = parsed_response.get("flashcards", [])
+        parsed_response = json.loads(
+            raw_response
+        )
 
-        validated_flashcards = []
+        return _validate_flashcards(
+            parsed_response
+        )
 
-        for card in flashcards:
-            if not isinstance(card, dict):
-                continue
+    except json.JSONDecodeError as error:
+        raise ValueError(
+            "Gemini returned invalid flashcard data. "
+            "Please try again."
+        ) from error
 
-            front = str(card.get("front", "")).strip()
-            back = str(card.get("back", "")).strip()
+    except ValueError:
+        raise
 
-            if front and back:
-                validated_flashcards.append(
-                    {
-                        "front": front,
-                        "back": back,
-                    }
-                )
-
-        if len(validated_flashcards) != 10:
-            return _fallback_flashcards(transcript)
-
-        return validated_flashcards
-
-    except (
-        requests.exceptions.ConnectionError,
-        requests.exceptions.Timeout,
-        requests.exceptions.RequestException,
-        json.JSONDecodeError,
-        ValueError,
-    ):
-        return _fallback_flashcards(transcript)
+    except Exception as error:
+        raise RuntimeError(
+            f"Flashcard generation failed: {error}"
+        ) from error
