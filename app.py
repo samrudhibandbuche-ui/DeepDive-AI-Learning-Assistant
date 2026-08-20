@@ -25,71 +25,166 @@ st.set_page_config(
 st.markdown(
     """
     <style>
+        .stApp {
+            background:
+                radial-gradient(circle at top left, rgba(99, 102, 241, 0.12), transparent 32%),
+                radial-gradient(circle at top right, rgba(14, 165, 233, 0.10), transparent 28%);
+        }
+
+        .block-container {
+            max-width: 1280px;
+            padding-top: 2rem;
+            padding-bottom: 3rem;
+        }
+
+        .hero {
+            padding: 2rem 2.2rem;
+            border: 1px solid rgba(99, 102, 241, 0.20);
+            border-radius: 24px;
+            background: linear-gradient(
+                135deg,
+                rgba(99, 102, 241, 0.16),
+                rgba(14, 165, 233, 0.08)
+            );
+            box-shadow: 0 18px 55px rgba(15, 23, 42, 0.08);
+            margin-bottom: 1.5rem;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            padding: 0.4rem 0.75rem;
+            border-radius: 999px;
+            background: rgba(99, 102, 241, 0.14);
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            margin-bottom: 0.9rem;
+        }
+
         .main-title {
-            font-size: 46px;
-            font-weight: 800;
-            margin-bottom: 0;
+            font-size: clamp(2.5rem, 6vw, 4.6rem);
+            line-height: 1;
+            font-weight: 900;
+            margin: 0;
+            letter-spacing: -0.04em;
         }
 
         .main-subtitle {
-            font-size: 18px;
-            opacity: 0.75;
-            margin-top: 0;
-            margin-bottom: 25px;
+            max-width: 850px;
+            font-size: 1.08rem;
+            line-height: 1.7;
+            opacity: 0.82;
+            margin-top: 1rem;
+            margin-bottom: 0;
         }
 
         .feature-card {
-            padding: 18px;
-            border: 1px solid rgba(128, 128, 128, 0.25);
-            border-radius: 14px;
-            margin-bottom: 12px;
-            min-height: 145px;
+            padding: 1.2rem;
+            border: 1px solid rgba(128, 128, 128, 0.20);
+            border-radius: 18px;
+            min-height: 155px;
+            background: rgba(255, 255, 255, 0.03);
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+            transition: transform 0.15s ease, border-color 0.15s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(99, 102, 241, 0.45);
+        }
+
+        .feature-icon {
+            font-size: 1.7rem;
+            margin-bottom: 0.55rem;
         }
 
         .status-card {
-            padding: 16px;
-            border-radius: 12px;
-            border: 1px solid rgba(128, 128, 128, 0.25);
-            margin-top: 12px;
+            padding: 1.1rem;
+            border-radius: 16px;
+            border: 1px solid rgba(128, 128, 128, 0.20);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .section-label {
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            opacity: 0.62;
+            margin-bottom: 0.3rem;
         }
 
         .flashcard {
-            padding: 35px;
-            border: 1px solid rgba(128, 128, 128, 0.35);
-            border-radius: 18px;
-            min-height: 230px;
+            padding: 2.4rem 2rem;
+            border: 1px solid rgba(99, 102, 241, 0.35);
+            border-radius: 22px;
+            min-height: 250px;
             text-align: center;
-            margin: 20px 0;
+            margin: 1.2rem 0;
+            background: linear-gradient(
+                145deg,
+                rgba(99, 102, 241, 0.10),
+                rgba(14, 165, 233, 0.05)
+            );
+            box-shadow: 0 16px 38px rgba(15, 23, 42, 0.08);
         }
 
         .flashcard-label {
-            font-size: 14px;
+            font-size: 0.78rem;
             opacity: 0.65;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.12em;
+            font-weight: 800;
         }
 
         .flashcard-content {
-            font-size: 24px;
-            font-weight: 600;
-            margin-top: 20px;
-            line-height: 1.5;
+            font-size: 1.45rem;
+            font-weight: 700;
+            margin-top: 1.3rem;
+            line-height: 1.55;
         }
 
         .small-text {
-            font-size: 14px;
-            opacity: 0.75;
+            font-size: 0.92rem;
+            line-height: 1.55;
+            opacity: 0.76;
         }
 
-        div.stButton > button {
-            width: 100%;
-            border-radius: 10px;
-            font-weight: 600;
+        div[data-testid="stMetric"] {
+            border: 1px solid rgba(128, 128, 128, 0.18);
+            border-radius: 16px;
+            padding: 0.9rem 1rem;
+            background: rgba(255, 255, 255, 0.03);
         }
 
+        div.stButton > button,
         div.stDownloadButton > button {
             width: 100%;
-            border-radius: 10px;
+            border-radius: 12px;
+            font-weight: 700;
+            min-height: 2.8rem;
+        }
+
+        div[data-testid="stFileUploader"] {
+            border-radius: 18px;
+        }
+
+        [data-testid="stSidebar"] {
+            border-right: 1px solid rgba(128, 128, 128, 0.18);
+        }
+
+        @media (max-width: 760px) {
+            .hero {
+                padding: 1.5rem;
+            }
+
+            .main-subtitle {
+                font-size: 0.98rem;
+            }
+
+            .feature-card {
+                min-height: auto;
+            }
         }
     </style>
     """,
@@ -218,8 +313,8 @@ def toggle_flashcard() -> None:
 # SIDEBAR
 # =========================================================
 with st.sidebar:
-    st.title("🎥 DeepDive AI")
-    st.caption("AI-Powered Learning Assistant")
+    st.title("🧠 DeepDive AI")
+    st.caption("Gemini + Whisper Learning Assistant")
 
     st.divider()
 
@@ -238,9 +333,8 @@ with st.sidebar:
     st.write("### Technologies")
     st.write("- Python")
     st.write("- Streamlit")
-    st.write("- Whisper")
-    st.write("- Ollama")
-    st.write("- Llama 3.2")
+    st.write("- OpenAI Whisper")
+    st.write("- Google Gemini")
     st.write("- MoviePy")
     st.write("- FFmpeg")
     st.write("- ReportLab")
@@ -259,16 +353,16 @@ with st.sidebar:
 # HEADER
 # =========================================================
 st.markdown(
-    '<p class="main-title">DeepDive AI</p>',
-    unsafe_allow_html=True,
-)
-
-st.markdown(
     """
-    <p class="main-subtitle">
-        Transform lecture videos into transcripts, structured notes,
-        interactive quizzes, flashcards and an intelligent lecture chatbot.
-    </p>
+    <div class="hero">
+        <div class="hero-badge">AI-POWERED LEARNING WORKSPACE</div>
+        <p class="main-title">DeepDive AI</p>
+        <p class="main-subtitle">
+            Turn lecture videos into accurate transcripts, structured notes,
+            revision flashcards, interactive quizzes, downloadable PDFs and
+            transcript-grounded answers—powered by Whisper and Google Gemini.
+        </p>
+    </div>
     """,
     unsafe_allow_html=True,
 )
@@ -283,7 +377,8 @@ with feature_col1:
     st.markdown(
         """
         <div class="feature-card">
-            <h4>🎙️ Transcription</h4>
+            <div class="feature-icon">🎙️</div>
+            <h4>Transcription</h4>
             <p class="small-text">
                 Converts lecture speech into searchable text using Whisper.
             </p>
@@ -296,7 +391,8 @@ with feature_col2:
     st.markdown(
         """
         <div class="feature-card">
-            <h4>🧠 Study Material</h4>
+            <div class="feature-icon">🧠</div>
+            <h4>Study Material</h4>
             <p class="small-text">
                 Generates notes, key points, keywords and revision content.
             </p>
@@ -309,7 +405,8 @@ with feature_col3:
     st.markdown(
         """
         <div class="feature-card">
-            <h4>❓ Quiz & Flashcards</h4>
+            <div class="feature-icon">❓</div>
+            <h4>Quiz & Flashcards</h4>
             <p class="small-text">
                 Tests understanding and provides interactive revision cards.
             </p>
@@ -322,7 +419,8 @@ with feature_col4:
     st.markdown(
         """
         <div class="feature-card">
-            <h4>💬 Lecture Chat</h4>
+            <div class="feature-icon">💬</div>
+            <h4>Lecture Chat</h4>
             <p class="small-text">
                 Answers questions using only the uploaded lecture transcript.
             </p>
@@ -338,12 +436,13 @@ st.divider()
 # =========================================================
 # VIDEO UPLOAD
 # =========================================================
-st.write("## 📤 Upload Lecture Video")
+st.markdown('<div class="section-label">Start here</div>', unsafe_allow_html=True)
+st.write("## 📤 Upload a Lecture Video")
 
 uploaded_video = st.file_uploader(
     "Choose a video file",
     type=["mp4", "mov", "avi", "mkv"],
-    help="Use a short MP4 video while testing.",
+    help="Supported formats: MP4, MOV, AVI and MKV. Short videos are faster to process.",
     key="lecture_video_uploader",
 )
 
@@ -442,7 +541,7 @@ if uploaded_video is not None:
             progress_bar.progress(100)
 
             status_message.success(
-                "All study material generated successfully!"
+                "🎉 Your complete learning pack is ready!"
             )
 
         except ValueError as error:
@@ -453,13 +552,7 @@ if uploaded_video is not None:
         except ConnectionError as error:
             progress_bar.empty()
             status_message.empty()
-
             st.error(str(error))
-
-            st.info(
-    "On Streamlit Cloud, questions are answered using transcript search. "
-    "When running locally with Ollama, the AI chatbot is used automatically."
-)
 
         except TimeoutError as error:
             progress_bar.empty()
@@ -481,6 +574,7 @@ else:
 if st.session_state.processed:
     st.divider()
 
+    st.markdown('<div class="section-label">Learning analytics</div>', unsafe_allow_html=True)
     st.write("## 📊 Processing Overview")
 
     transcript_word_count = len(
@@ -527,6 +621,7 @@ if st.session_state.processed:
         f"Processed video: {st.session_state.video_name}"
     )
 
+    st.markdown('<div class="section-label">Explore your results</div>', unsafe_allow_html=True)
     st.write("## 📚 Generated Learning Material")
 
     (
@@ -543,9 +638,9 @@ if st.session_state.processed:
             "🧠 Study Notes",
             "❓ Interactive Quiz",
             "🗂️ Flashcards",
-            "💬 Chat with Video",
+            "💬 Ask DeepDive",
             "🎵 Audio",
-            "📥 Downloads",
+            "📥 Export",
         ]
     )
 
@@ -623,7 +718,7 @@ if st.session_state.processed:
                 st.divider()
 
             submit_quiz = st.form_submit_button(
-                "Submit Quiz",
+                "✅ Submit Quiz",
                 type="primary",
             )
 
@@ -872,7 +967,7 @@ if st.session_state.processed:
                     st.divider()
 
             st.download_button(
-                label="Download Flashcards",
+                label="📥 Download Flashcards",
                 data=st.session_state.flashcards_text,
                 file_name=(
                     f"{Path(st.session_state.video_name).stem}"
@@ -893,9 +988,9 @@ if st.session_state.processed:
         chat_heading_col, clear_chat_col = st.columns([4, 1])
 
         with chat_heading_col:
-            st.write("### 💬 Ask Questions About the Lecture")
+            st.write("### 💬 Ask DeepDive About the Lecture")
             st.caption(
-                "DeepDive AI will answer using only the uploaded video transcript."
+                "Answers are generated by Gemini using only the uploaded lecture transcript."
             )
 
         with clear_chat_col:
@@ -939,7 +1034,7 @@ if st.session_state.processed:
             try:
                 with st.chat_message("assistant"):
                     with st.spinner(
-                        "DeepDive AI is checking the lecture..."
+                        "Gemini is reviewing the lecture transcript..."
                     ):
                         answer = answer_from_transcript(
                             transcript=st.session_state.transcript,
@@ -961,9 +1056,6 @@ if st.session_state.processed:
 
             except ConnectionError as error:
                 st.error(str(error))
-                st.info("On Streamlit Cloud, questions are answered using transcript search. "
-    "When running locally with Ollama, the AI chatbot is used automatically."
-)
 
             except TimeoutError as error:
                 st.error(str(error))
@@ -1014,7 +1106,7 @@ if st.session_state.processed:
 
         with download_col1:
             st.download_button(
-                label="Download Transcript",
+                label="📥 Download Transcript",
                 data=st.session_state.transcript,
                 file_name=f"{video_stem}_transcript.txt",
                 mime="text/plain",
@@ -1023,7 +1115,7 @@ if st.session_state.processed:
 
         with download_col2:
             st.download_button(
-                label="Download Study Notes",
+                label="📥 Download Study Notes",
                 data=st.session_state.study_notes,
                 file_name=f"{video_stem}_notes.txt",
                 mime="text/plain",
@@ -1032,7 +1124,7 @@ if st.session_state.processed:
 
         with download_col3:
             st.download_button(
-                label="Download Quiz with Answers",
+                label="📥 Download Quiz with Answers",
                 data=st.session_state.quiz_text,
                 file_name=f"{video_stem}_quiz.txt",
                 mime="text/plain",
@@ -1041,7 +1133,7 @@ if st.session_state.processed:
 
         with download_col4:
             st.download_button(
-                label="Download Flashcards",
+                label="📥 Download Flashcards",
                 data=st.session_state.flashcards_text,
                 file_name=f"{video_stem}_flashcards.txt",
                 mime="text/plain",
@@ -1062,7 +1154,7 @@ if st.session_state.processed:
                     pdf_data = pdf_file.read()
 
                 st.download_button(
-                    label="Download PDF Notes",
+                    label="📄 Download PDF Notes",
                     data=pdf_data,
                     file_name=os.path.basename(
                         st.session_state.pdf_path
