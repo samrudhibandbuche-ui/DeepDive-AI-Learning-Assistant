@@ -1,13 +1,17 @@
 from pathlib import Path
-
 import whisper
+import streamlit as st
 
 
-model = whisper.load_model("base")
+@st.cache_resource
+def load_whisper_model():
+    return whisper.load_model("base")
 
 
 def transcribe_audio(audio_path: str):
     """Convert audio into text using OpenAI Whisper."""
+
+    model = load_whisper_model()
 
     result = model.transcribe(audio_path)
 
