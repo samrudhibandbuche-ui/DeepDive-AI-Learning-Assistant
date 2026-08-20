@@ -1,189 +1,41 @@
-import re
-from collections import Counter
+import os
 
-import requests
-
-
-OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL_NAME = "llama3.2"
-
-STOP_WORDS = {
-    "a", "an", "and", "are", "as", "at", "be", "been", "but", "by",
-    "for", "from", "had", "has", "have", "he", "her", "his", "i",
-    "in", "is", "it", "its", "of", "on", "or", "our", "she", "that",
-    "the", "their", "them", "they", "this", "to", "was", "we", "were",
-    "what", "when", "where", "which", "who", "will", "with", "you",
-    "your",
-}
+from dotenv import load_dotenv
+from google import genai
 
 
-def _split_sentences(text: str) -> list[str]:
-    """Split transcript into clean sentences."""
-    sentences = re.split(r"(?<=[.!?])\s+|\n+", text.strip())
+load_dotenv()
 
-    return [
-        " ".join(sentence.split())
-        for sentence in sentences
-        if len(sentence.strip()) >= 20
-    ]
-
-
-def _extract_keywords(text: str, limit: int = 10) -> list[str]:
-    """Extract frequently occurring useful words."""
-    words = re.findall(r"[A-Za-z][A-Za-z0-9'-]*", text.lower())
-
-    useful_words = [
-        word
-        for word in words
-        if word not in STOP_WORDS and len(word) > 3
-    ]
-
-    counts = Counter(useful_words)
-
-    return [
-        word
-        for word, _ in counts.most_common(limit)
-    ]
-
-
-def _sentence_score(
-    sentence: str,
-    keyword_counts: Counter,
-) -> float:
-    """Score a sentence using important transcript keywords."""
-    words = re.findall(
-        r"[A-Za-z][A-Za-z0-9'-]*",
-        sentence.lower(),
-    )
-
-    useful_words = [
-        word
-        for word in words
-        if word not in STOP_WORDS
-    ]
-
-    if not useful_words:
-        return 0
-
-    score = sum(keyword_counts[word] for word in useful_words)
-
-    return score / len(useful_words)
-
-
-def _generate_fallback_notes(transcript: str) -> str:
-    """
-    Generate structured notes without Ollama.
-
-    This fallback uses extractive summarization, meaning it selects
-    important information directly from the transcript.
-    """
-    sentences = _split_sentences(transcript)
-
-    if not sentences:
-        raise ValueError(
-            "The transcript does not contain enough text "
-            "to generate study notes."
-        )
-
-    words = re.findall(
-        r"[A-Za-z][A-Za-z0-9'-]*",
-        transcript.lower(),
-    )
-
-    useful_words = [
-        word
-        for word in words
-        if word not in STOP_WORDS and len(word) > 3
-    ]
-
-    keyword_counts = Counter(useful_words)
-
-    ranked_sentences = sorted(
-        sentences,
-        key=lambda sentence: _sentence_score(
-            sentence,
-            keyword_counts,
-        ),
-        reverse=True,
-    )
-
-    summary_count = min(4, len(ranked_sentences))
-    summary_sentences = ranked_sentences[:summary_count]
-
-    summary_sentences.sort(
-        key=lambda sentence: sentences.index(sentence)
-    )
-
-    detailed_count = min(8, len(ranked_sentences))
-    detailed_sentences = ranked_sentences[:detailed_count]
-
-    detailed_sentences.sort(
-        key=lambda sentence: sentences.index(sentence)
-    )
-
-    key_points = ranked_sentences[: min(8, len(ranked_sentences))]
-    keywords = _extract_keywords(transcript, limit=10)
-
-    summary = " ".join(summary_sentences)
-
-    detailed_notes = "\n\n".join(
-        f"### Concept {index}\n{sentence}"
-        for index, sentence in enumerate(
-            detailed_sentences,
-            start=1,
-        )
-    )
-
-    key_points_text = "\n".join(
-        f"- {sentence}"
-        for sentence in key_points
-    )
-
-    keywords_text = ", ".join(keywords)
-
-    return f"""SUMMARY
-
-{summary}
-
-DETAILED NOTES
-
-{detailed_notes}
-
-KEY POINTS
-
-{key_points_text}
-
-KEYWORDS
-
-{keywords_text}
-
-_These notes were generated directly from the transcript because the local Ollama AI service was unavailable._
-"""
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+MODEL_NAME = "gemini-3.5-flash-lite"
 
 
 def generate_study_notes(transcript: str) -> str:
-    """
-    Generate structured study notes from a video transcript.
-
-    Ollama is used when available. On Streamlit Cloud, where Ollama
-    cannot run locally, transcript-based fallback notes are generated.
-    """
+    """Generate structured study notes from a video transcript."""
 
     if not transcript.strip():
         raise ValueError("The transcript is empty.")
 
-    prompt = f"""
-You are an educational note-taking assistant.
+    if not GEMINI_API_KEY:
+        raise ValueError(
+            "Gemini API key was not found. "
+            "Add GEMINI_API_KEY to the .env file."
+        )
 
-Convert the following video transcript into clear and accurate study notes.
+    prompt = f"""
+You are DeepDive AI, an educational note-taking assistant.
+
+Convert the following lecture transcript into clear and accurate study
+notes.
 
 Use exactly this structure:
 
 SUMMARY
-Write a concise summary of the video in one paragraph.
+Write one concise summary paragraph.
 
 DETAILED NOTES
-Explain the important concepts using clear headings and short paragraphs.
+Explain the important concepts using meaningful headings and short
+paragraphs.
 
 KEY POINTS
 Provide the most important points as bullet points.
@@ -191,42 +43,37 @@ Provide the most important points as bullet points.
 KEYWORDS
 Provide 8 to 12 important keywords separated by commas.
 
-Do not add information that is not present in the transcript.
-Use simple, student-friendly language.
+Rules:
+
+1. Use only information contained in the transcript.
+2. Do not add outside information.
+3. Use simple, student-friendly language.
+4. Remove unnecessary repetition.
+5. Keep the notes accurate and useful for revision.
 
 TRANSCRIPT:
+
 {transcript}
 """
 
     try:
-        response = requests.post(
-            OLLAMA_URL,
-            json={
-                "model": MODEL_NAME,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "temperature": 0.2,
-                    "num_ctx": 4096,
-                },
-            },
-            timeout=30,
+        client = genai.Client(api_key=GEMINI_API_KEY)
+
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
         )
 
-        response.raise_for_status()
-        result = response.json()
+        notes = response.text.strip() if response.text else ""
 
-        notes = result.get("response", "").strip()
+        if not notes:
+            raise ValueError(
+                "Gemini returned an empty response."
+            )
 
-        if notes:
-            return notes
+        return notes
 
-        return _generate_fallback_notes(transcript)
-
-    except (
-        requests.exceptions.ConnectionError,
-        requests.exceptions.Timeout,
-        requests.exceptions.RequestException,
-        ValueError,
-    ):
-        return _generate_fallback_notes(transcript)
+    except Exception as error:
+        raise RuntimeError(
+            f"Study-note generation failed: {error}"
+        ) from error
