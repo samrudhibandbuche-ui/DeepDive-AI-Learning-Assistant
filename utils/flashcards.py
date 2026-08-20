@@ -29,10 +29,13 @@ FLASHCARD_SCHEMA = {
 }
 
 
-def _fallback_flashcards(transcript: str):
+def _fallback_flashcards(transcript: str) -> list[dict]:
     """Generate simple flashcards directly from the transcript."""
 
-    sentences = re.split(r"(?<=[.!?])\s+|\n+", transcript.strip())
+    sentences = re.split(
+        r"(?<=[.!?])\s+|\n+",
+        transcript.strip(),
+    )
 
     sentences = [
         sentence.strip()
@@ -47,22 +50,31 @@ def _fallback_flashcards(transcript: str):
 
     flashcards = []
 
-    for sentence in sentences[:10]:
+    for number, sentence in enumerate(sentences[:10], start=1):
         flashcards.append(
             {
-                "front": "Explain the following concept",
+                "front": f"Revision concept {number}",
                 "back": sentence,
             }
         )
 
     while len(flashcards) < 10:
-        flashcards.append(flashcards[-1])
+        source_card = flashcards[
+            len(flashcards) % len(flashcards)
+        ]
+
+        flashcards.append(
+            {
+                "front": f"Revision concept {len(flashcards) + 1}",
+                "back": source_card["back"],
+            }
+        )
 
     return flashcards
 
 
-def generate_flashcards(transcript: str):
-    """Generate ten revision flashcards."""
+def generate_flashcards(transcript: str) -> list[dict]:
+    """Generate ten structured revision flashcards."""
 
     if not transcript.strip():
         raise ValueError("The transcript is empty.")
@@ -77,7 +89,7 @@ Requirements:
 - Use only information from the transcript.
 - Avoid duplicate flashcards.
 - Keep the language student-friendly.
-- Return valid JSON.
+- Return the information using the required JSON structure.
 
 TRANSCRIPT:
 
@@ -102,33 +114,38 @@ TRANSCRIPT:
 
         response.raise_for_status()
 
-        raw = response.json().get("response", "").strip()
+        raw_response = response.json().get(
+            "response",
+            "",
+        ).strip()
 
-        if not raw:
+        if not raw_response:
             return _fallback_flashcards(transcript)
 
-        parsed = json.loads(raw)
+        parsed_response = json.loads(raw_response)
+        flashcards = parsed_response.get("flashcards", [])
 
-        flashcards = parsed.get("flashcards", [])
-
-        valid = []
+        validated_flashcards = []
 
         for card in flashcards:
+            if not isinstance(card, dict):
+                continue
+
             front = str(card.get("front", "")).strip()
             back = str(card.get("back", "")).strip()
 
             if front and back:
-                valid.append(
+                validated_flashcards.append(
                     {
                         "front": front,
                         "back": back,
                     }
                 )
 
-        if len(valid) != 10:
+        if len(validated_flashcards) != 10:
             return _fallback_flashcards(transcript)
 
-        return valid
+        return validated_flashcards
 
     except (
         requests.exceptions.ConnectionError,
@@ -137,4 +154,4 @@ TRANSCRIPT:
         json.JSONDecodeError,
         ValueError,
     ):
-        
+        return _fallback_flashcards(transcript)
