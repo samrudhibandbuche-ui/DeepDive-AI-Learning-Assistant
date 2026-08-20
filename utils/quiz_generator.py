@@ -1,12 +1,15 @@
 import json
-import random
-import re
+import os
 
-import requests
+from dotenv import load_dotenv
+from google import genai
+from google.genai import types
 
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL_NAME = "llama3.2"
+load_dotenv()
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+MODEL_NAME = "gemini-3.6-flash"
 
 
 QUIZ_SCHEMA = {
@@ -19,19 +22,25 @@ QUIZ_SCHEMA = {
             "items": {
                 "type": "object",
                 "properties": {
-                    "question": {"type": "string"},
+                    "question": {
+                        "type": "string",
+                    },
                     "options": {
                         "type": "array",
                         "minItems": 4,
                         "maxItems": 4,
-                        "items": {"type": "string"},
+                        "items": {
+                            "type": "string",
+                        },
                     },
                     "correct_answer": {
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 3,
                     },
-                    "explanation": {"type": "string"},
+                    "explanation": {
+                        "type": "string",
+                    },
                 },
                 "required": [
                     "question",
@@ -40,115 +49,27 @@ QUIZ_SCHEMA = {
                     "explanation",
                 ],
             },
-        }
+        },
     },
-    "required": ["questions"],
+    "required": [
+        "questions",
+    ],
 }
 
 
-def _split_sentences(transcript: str) -> list[str]:
-    sentences = re.split(r"(?<=[.!?])\s+|\n+", transcript.strip())
+def _validate_quiz(parsed_quiz: dict) -> list[dict]:
+    """Validate and format the quiz returned by Gemini."""
 
-    return [
-        sentence.strip()
-        for sentence in sentences
-        if 30 <= len(sentence.strip()) <= 250
-    ]
-
-
-def _shorten(text: str, limit: int = 120) -> str:
-    text = " ".join(text.split())
-
-    if len(text) <= limit:
-        return text
-
-    return text[: limit - 3].rstrip() + "..."
-
-
-def _generate_fallback_quiz(transcript: str) -> list[dict]:
-    """
-    Generate a simple transcript-based quiz when Ollama is unavailable.
-
-    This fallback uses sentences directly from the transcript, so it does
-    not require any external AI service.
-    """
-
-    sentences = _split_sentences(transcript)
-
-    if len(sentences) < 4:
-        raise ValueError(
-            "The transcript is too short to generate a quiz. "
-            "Please use a longer video."
-        )
-
-    unique_sentences = list(dict.fromkeys(sentences))
-    random.shuffle(unique_sentences)
-
-    selected = unique_sentences[:10]
-
-    while len(selected) < 10:
-        selected.append(
-            unique_sentences[len(selected) % len(unique_sentences)]
-        )
-
-    quiz = []
-
-    for index, correct_sentence in enumerate(selected, start=1):
-        distractor_pool = [
-            sentence
-            for sentence in unique_sentences
-            if sentence != correct_sentence
-        ]
-
-        if len(distractor_pool) >= 3:
-            distractors = random.sample(distractor_pool, 3)
-        else:
-            distractors = distractor_pool[:]
-
-            while len(distractors) < 3:
-                distractors.append(
-                    "This statement was not explained in the lecture."
-                )
-
-        options = [
-            _shorten(correct_sentence),
-            *[_shorten(item) for item in distractors],
-        ]
-
-        random.shuffle(options)
-
-        correct_option = _shorten(correct_sentence)
-        correct_answer = options.index(correct_option)
-
-        quiz.append(
-            {
-                "id": index,
-                "question": (
-                    "Which statement is supported by the uploaded lecture?"
-                ),
-                "options": options,
-                "correct_answer": correct_answer,
-                "explanation": (
-                    "The correct option is taken directly from the "
-                    "uploaded lecture transcript."
-                ),
-            }
-        )
-
-    return quiz
-
-
-def _validate_ai_quiz(parsed_quiz: dict) -> list[dict]:
     if not isinstance(parsed_quiz, dict):
         raise ValueError(
-            "The generated quiz is not in the expected object format."
+            "Gemini returned an invalid quiz format."
         )
 
     questions = parsed_quiz.get("questions")
 
     if not isinstance(questions, list):
         raise ValueError(
-            "The generated quiz does not contain a questions list."
+            "Gemini did not return a questions list."
         )
 
     validated_quiz = []
@@ -157,24 +78,41 @@ def _validate_ai_quiz(parsed_quiz: dict) -> list[dict]:
         if not isinstance(item, dict):
             continue
 
-        question = str(item.get("question", "")).strip()
+        question = str(
+            item.get("question", "")
+        ).strip()
+
         options = item.get("options", [])
-        explanation = str(item.get("explanation", "")).strip()
+
+        explanation = str(
+            item.get("explanation", "")
+        ).strip()
 
         try:
-            correct_answer = int(item.get("correct_answer"))
+            correct_answer = int(
+                item.get("correct_answer")
+            )
         except (TypeError, ValueError):
             continue
 
         if not question:
             continue
 
-        if not isinstance(options, list) or len(options) != 4:
+        if not isinstance(options, list):
             continue
 
-        options = [str(option).strip() for option in options]
+        if len(options) != 4:
+            continue
 
-        if any(not option for option in options):
+        clean_options = [
+            str(option).strip()
+            for option in options
+        ]
+
+        if any(
+            not option
+            for option in clean_options
+        ):
             continue
 
         if correct_answer not in range(4):
@@ -184,7 +122,7 @@ def _validate_ai_quiz(parsed_quiz: dict) -> list[dict]:
             {
                 "id": number,
                 "question": question,
-                "options": options,
+                "options": clean_options,
                 "correct_answer": correct_answer,
                 "explanation": explanation,
             }
@@ -192,77 +130,97 @@ def _validate_ai_quiz(parsed_quiz: dict) -> list[dict]:
 
     if len(validated_quiz) != 10:
         raise ValueError(
-            f"The AI generated only {len(validated_quiz)} valid "
-            "questions instead of 10."
+            f"Gemini generated only "
+            f"{len(validated_quiz)} valid questions "
+            "instead of 10. Please try again."
         )
 
     return validated_quiz
 
 
 def generate_quiz(transcript: str) -> list[dict]:
-    """
-    Generate ten structured MCQs from a transcript.
-
-    Ollama is used when available. On Streamlit Cloud, where Ollama is
-    unavailable, a transcript-based fallback quiz is generated.
-    """
+    """Generate exactly ten MCQs using Gemini."""
 
     if not transcript.strip():
-        raise ValueError("The transcript is empty.")
+        raise ValueError(
+            "The transcript is empty."
+        )
+
+    if not GEMINI_API_KEY:
+        raise ValueError(
+            "Gemini API key was not found. "
+            "Add GEMINI_API_KEY to the .env file "
+            "or Streamlit secrets."
+        )
 
     prompt = f"""
-Create exactly 10 multiple-choice questions based only on the transcript.
+You are DeepDive AI, an educational quiz-generation assistant.
+
+Create exactly 10 multiple-choice questions using only the lecture
+transcript below.
 
 Requirements:
 
-- Every question must contain exactly four options.
-- correct_answer must be an integer:
-  0 means the first option,
-  1 means the second option,
-  2 means the third option,
-  3 means the fourth option.
-- Include a short explanation.
-- Do not repeat questions.
-- Do not use information outside the transcript.
-- Keep the wording clear and student-friendly.
+1. Generate exactly 10 questions.
+2. Every question must contain exactly four options.
+3. Only one option should be correct.
+4. correct_answer must be an integer:
+   0 means the first option,
+   1 means the second option,
+   2 means the third option,
+   3 means the fourth option.
+5. Include a short explanation for every correct answer.
+6. Do not repeat questions.
+7. Do not use information that is not present in the transcript.
+8. Keep the language clear and student-friendly.
+9. Make the questions useful for revision.
+10. Return the result in the required JSON structure.
 
-TRANSCRIPT:
+LECTURE TRANSCRIPT:
 
 {transcript}
 """
 
     try:
-        response = requests.post(
-            OLLAMA_URL,
-            json={
-                "model": MODEL_NAME,
-                "prompt": prompt,
-                "stream": False,
-                "format": QUIZ_SCHEMA,
-                "options": {
-                    "temperature": 0,
-                    "num_ctx": 4096,
-                },
-            },
-            timeout=30,
+        client = genai.Client(
+            api_key=GEMINI_API_KEY
         )
 
-        response.raise_for_status()
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.2,
+                response_mime_type="application/json",
+                response_schema=QUIZ_SCHEMA,
+            ),
+        )
 
-        response_data = response.json()
-        raw_quiz = response_data.get("response", "").strip()
+        raw_quiz = (
+            response.text.strip()
+            if response.text
+            else ""
+        )
 
         if not raw_quiz:
-            return _generate_fallback_quiz(transcript)
+            raise ValueError(
+                "Gemini returned an empty quiz."
+            )
 
         parsed_quiz = json.loads(raw_quiz)
-        return _validate_ai_quiz(parsed_quiz)
 
-    except (
-        requests.exceptions.ConnectionError,
-        requests.exceptions.Timeout,
-        requests.exceptions.RequestException,
-        json.JSONDecodeError,
-        ValueError,
-    ):
-        return _generate_fallback_quiz(transcript)
+        return _validate_quiz(parsed_quiz)
+
+    except json.JSONDecodeError as error:
+        raise ValueError(
+            "Gemini returned invalid quiz data. "
+            "Please try again."
+        ) from error
+
+    except ValueError:
+        raise
+
+    except Exception as error:
+        raise RuntimeError(
+            f"Quiz generation failed: {error}"
+        ) from error
