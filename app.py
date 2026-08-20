@@ -457,9 +457,9 @@ if uploaded_video is not None:
             st.error(str(error))
 
             st.info(
-                "Make sure Ollama is running. Open Ollama or run "
-                "`ollama serve` in another terminal."
-            )
+    "On Streamlit Cloud, questions are answered using transcript search. "
+    "When running locally with Ollama, the AI chatbot is used automatically."
+)
 
         except TimeoutError as error:
             progress_bar.empty()
@@ -961,9 +961,9 @@ if st.session_state.processed:
 
             except ConnectionError as error:
                 st.error(str(error))
-                st.info(
-                    "Make sure Ollama is running."
-                )
+                st.info("On Streamlit Cloud, questions are answered using transcript search. "
+    "When running locally with Ollama, the AI chatbot is used automatically."
+)
 
             except TimeoutError as error:
                 st.error(str(error))
