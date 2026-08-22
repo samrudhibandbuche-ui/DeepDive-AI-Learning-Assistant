@@ -1,5 +1,8 @@
 import os
+import random
 import re
+import time
+from html import escape
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -11,27 +14,64 @@ from services.processing_service import process_video
 from utils.helpers import create_directories
 
 
-# =========================================================
-# STYLE LOADER
-# =========================================================
-def load_css(relative_path: str) -> None:
-    """Load the external stylesheet used by the DeepDive interface."""
+def process_video_with_retry(
+    *,
+    video_path: str,
+    video_name: str,
+    status_callback=None,
+    progress_callback=None,
+    maximum_attempts: int = 4,
+):
+    """Run the complete pipeline and retry temporary AI service errors.
 
-    css_path = Path(__file__).resolve().parent / relative_path
+    This handles temporary Gemini errors such as 503 high demand,
+    429 rate limits and network timeouts.
+    """
 
-    try:
-        css = css_path.read_text(encoding="utf-8")
-    except FileNotFoundError:
-        st.warning(
-            "The interface stylesheet could not be found at "
-            f"{css_path}. The app will continue with Streamlit's default styling."
-        )
-        return
-    except OSError as error:
-        st.warning(f"The interface stylesheet could not be loaded: {error}")
-        return
+    last_error = None
 
-    st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+    for attempt in range(1, maximum_attempts + 1):
+        try:
+            return process_video(
+                video_path=video_path,
+                video_name=video_name,
+                status_callback=status_callback,
+                progress_callback=progress_callback,
+            )
+        except Exception as error:
+            last_error = error
+            error_text = str(error).lower()
+
+            temporary_error = any(
+                message in error_text
+                for message in (
+                    "503",
+                    "unavailable",
+                    "high demand",
+                    "429",
+                    "resource exhausted",
+                    "rate limit",
+                    "timeout",
+                    "timed out",
+                )
+            )
+
+            if not temporary_error or attempt == maximum_attempts:
+                raise
+
+            wait_seconds = min(15, (2 ** (attempt - 1)) + random.uniform(0.5, 1.5))
+
+            if status_callback:
+                status_callback(
+                    f"⚠️ AI service is busy. Retrying in {wait_seconds:.0f} seconds "
+                    f"(attempt {attempt + 1}/{maximum_attempts})..."
+                )
+
+            time.sleep(wait_seconds)
+
+    raise ConnectionError(
+        "The AI service is temporarily busy. Please try again in a few minutes."
+    ) from last_error
 
 
 # =========================================================
@@ -44,7 +84,287 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-load_css("assets/css/style.css")
+
+# =========================================================
+# CUSTOM CSS
+# =========================================================
+st.markdown(
+    """
+    <style>
+        :root {
+            --dd-primary: #7c3aed;
+            --dd-secondary: #2563eb;
+            --dd-accent: #06b6d4;
+            --dd-border: rgba(148, 163, 184, 0.20);
+        }
+
+        .stApp {
+            background:
+                radial-gradient(circle at 8% 0%, rgba(124, 58, 237, 0.18), transparent 28%),
+                radial-gradient(circle at 96% 4%, rgba(37, 99, 235, 0.15), transparent 25%),
+                linear-gradient(180deg, rgba(15, 23, 42, 0.02), transparent 45%);
+        }
+
+        html { scroll-behavior: smooth; }
+
+        #MainMenu, footer { visibility: hidden; }
+
+        header[data-testid="stHeader"] {
+            background: transparent;
+        }
+
+        .block-container {
+            max-width: 1320px;
+            padding-top: 1.6rem;
+            padding-bottom: 4rem;
+        }
+
+        h1, h2, h3, h4 {
+            letter-spacing: -0.025em;
+        }
+
+        .brand-row {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            margin-bottom: 1rem;
+        }
+
+        .brand-mark {
+            display: grid;
+            place-items: center;
+            width: 48px;
+            height: 48px;
+            border-radius: 15px;
+            font-size: 1.45rem;
+            background: linear-gradient(135deg, var(--dd-primary), var(--dd-secondary));
+            box-shadow: 0 12px 30px rgba(79, 70, 229, 0.28);
+        }
+
+        .brand-name {
+            font-size: 1.08rem;
+            font-weight: 850;
+            line-height: 1.1;
+        }
+
+        .brand-tagline {
+            font-size: 0.78rem;
+            opacity: 0.65;
+            margin-top: 0.18rem;
+        }
+
+        .hero {
+            position: relative;
+            overflow: hidden;
+            padding: 2.6rem 2.7rem;
+            border: 1px solid rgba(124, 58, 237, 0.24);
+            border-radius: 28px;
+            background:
+                linear-gradient(135deg, rgba(124, 58, 237, 0.19), rgba(37, 99, 235, 0.10) 54%, rgba(6, 182, 212, 0.08));
+            box-shadow: 0 24px 70px rgba(15, 23, 42, 0.10);
+            margin-bottom: 1.6rem;
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            width: 260px;
+            height: 260px;
+            right: -80px;
+            top: -100px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.08);
+            filter: blur(2px);
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 0.7rem;
+            flex-wrap: wrap;
+            margin-top: 1.3rem;
+        }
+
+        .hero-chip {
+            border: 1px solid rgba(124, 58, 237, 0.24);
+            background: rgba(255,255,255,0.08);
+            padding: 0.48rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            padding: 0.4rem 0.75rem;
+            border-radius: 999px;
+            background: rgba(99, 102, 241, 0.14);
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            margin-bottom: 0.9rem;
+        }
+
+        .main-title {
+            font-size: clamp(2.5rem, 6vw, 4.6rem);
+            line-height: 1;
+            font-weight: 900;
+            margin: 0;
+            letter-spacing: -0.04em;
+        }
+
+        .main-subtitle {
+            max-width: 850px;
+            font-size: 1.08rem;
+            line-height: 1.7;
+            opacity: 0.82;
+            margin-top: 1rem;
+            margin-bottom: 0;
+        }
+
+        .feature-card {
+            padding: 1.25rem;
+            border: 1px solid var(--dd-border);
+            border-radius: 20px;
+            min-height: 160px;
+            background: rgba(255, 255, 255, 0.045);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.055);
+            transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(124, 58, 237, 0.48);
+            box-shadow: 0 18px 38px rgba(15, 23, 42, 0.09);
+        }
+
+        .feature-icon {
+            font-size: 1.7rem;
+            margin-bottom: 0.55rem;
+        }
+
+        .status-card {
+            padding: 1.1rem;
+            border-radius: 16px;
+            border: 1px solid rgba(128, 128, 128, 0.20);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .section-label {
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            opacity: 0.62;
+            margin-bottom: 0.3rem;
+        }
+
+        .flashcard {
+            padding: 2.4rem 2rem;
+            border: 1px solid rgba(99, 102, 241, 0.35);
+            border-radius: 22px;
+            min-height: 250px;
+            text-align: center;
+            margin: 1.2rem 0;
+            background: linear-gradient(
+                145deg,
+                rgba(99, 102, 241, 0.10),
+                rgba(14, 165, 233, 0.05)
+            );
+            box-shadow: 0 16px 38px rgba(15, 23, 42, 0.08);
+        }
+
+        .flashcard-label {
+            font-size: 0.78rem;
+            opacity: 0.65;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            font-weight: 800;
+        }
+
+        .flashcard-content {
+            font-size: 1.45rem;
+            font-weight: 700;
+            margin-top: 1.3rem;
+            line-height: 1.55;
+        }
+
+        .small-text {
+            font-size: 0.92rem;
+            line-height: 1.55;
+            opacity: 0.76;
+        }
+
+        div[data-testid="stMetric"] {
+            border: 1px solid var(--dd-border);
+            border-radius: 18px;
+            padding: 1rem 1.05rem;
+            background: rgba(255, 255, 255, 0.045);
+            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
+        }
+
+        div[data-testid="stMetricValue"] {
+            font-weight: 850;
+        }
+
+        div[data-baseweb="tab-list"] {
+            gap: 0.35rem;
+            background: rgba(148, 163, 184, 0.08);
+            border-radius: 15px;
+            padding: 0.35rem;
+        }
+
+        button[data-baseweb="tab"] {
+            border-radius: 11px;
+            padding-left: 0.85rem;
+            padding-right: 0.85rem;
+        }
+
+        div.stButton > button,
+        div.stDownloadButton > button {
+            width: 100%;
+            border-radius: 13px;
+            font-weight: 750;
+            min-height: 2.9rem;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        div.stButton > button:hover,
+        div.stDownloadButton > button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(79, 70, 229, 0.16);
+        }
+
+        div[data-testid="stTextInput"] input,
+        div[data-testid="stTextArea"] textarea {
+            border-radius: 13px;
+        }
+
+        div[data-testid="stFileUploader"] {
+            border-radius: 18px;
+        }
+
+        [data-testid="stSidebar"] {
+            border-right: 1px solid rgba(128, 128, 128, 0.18);
+        }
+
+        @media (max-width: 760px) {
+            .hero {
+                padding: 1.5rem;
+            }
+
+            .main-subtitle {
+                font-size: 0.98rem;
+            }
+
+            .feature-card {
+                min-height: auto;
+            }
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 # =========================================================
@@ -76,6 +396,8 @@ def get_default_values() -> dict:
         "quiz_text": "",
         "flashcards": [],
         "flashcards_text": "",
+        "exam_material": "",
+        "exam_difficulty": "Balanced",
         "quiz_submitted": False,
         "quiz_score": 0,
         "flashcard_index": 0,
@@ -352,6 +674,71 @@ st.markdown(
 
 
 # =========================================================
+# FEATURE CARDS
+# =========================================================
+feature_col1, feature_col2, feature_col3, feature_col4 = st.columns(4)
+
+with feature_col1:
+    st.markdown(
+        """
+        <div class="feature-card">
+            <div class="feature-icon">🎙️</div>
+            <h4>Transcription</h4>
+            <p class="small-text">
+                Converts lecture speech into searchable text using Whisper.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+with feature_col2:
+    st.markdown(
+        """
+        <div class="feature-card">
+            <div class="feature-icon">🧠</div>
+            <h4>Study Material</h4>
+            <p class="small-text">
+                Generates notes, key points, keywords and revision content.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+with feature_col3:
+    st.markdown(
+        """
+        <div class="feature-card">
+            <div class="feature-icon">❓</div>
+            <h4>Quiz & Flashcards</h4>
+            <p class="small-text">
+                Tests understanding and provides interactive revision cards.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+with feature_col4:
+    st.markdown(
+        """
+        <div class="feature-card">
+            <div class="feature-icon">💬</div>
+            <h4>Lecture Chat</h4>
+            <p class="small-text">
+                Answers questions using only the processed lecture transcript.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+st.divider()
+
+
+# =========================================================
 # VIDEO INPUT
 # =========================================================
 st.markdown('<div class="section-label">Start here</div>', unsafe_allow_html=True)
@@ -394,22 +781,18 @@ if input_source == "Upload Video":
             st.write("### Video Information")
             file_size_mb = uploaded_video.size / (1024 * 1024)
 
+            safe_video_name = escape(uploaded_video.name)
             st.markdown(
-                f"""
-                <div class="status-card">
-                    <b>Input source</b><br>
-                    Uploaded file<br><br>
-
-                    <b>File name</b><br>
-                    {uploaded_video.name}<br><br>
-
-                    <b>File size</b><br>
-                    {file_size_mb:.2f} MB<br><br>
-
-                    <b>Status</b><br>
-                    Ready for processing
-                </div>
-                """,
+                f"""<div class="status-card">
+<b>Input source</b><br>
+Uploaded file<br><br>
+<b>File name</b><br>
+{safe_video_name}<br><br>
+<b>File size</b><br>
+{file_size_mb:.2f} MB<br><br>
+<b>Status</b><br>
+Ready for processing
+</div>""",
                 unsafe_allow_html=True,
             )
 
@@ -495,7 +878,7 @@ if generate_clicked:
         else:
             update_progress(5)
 
-        results = process_video(
+        results = process_video_with_retry(
             video_path=video_path,
             video_name=video_name,
             status_callback=update_status,
@@ -548,75 +931,6 @@ if generate_clicked:
         progress_bar.empty()
         status_message.empty()
         st.error(f"Processing failed: {error}")
-
-
-
-
-# =========================================================
-# FEATURE CARDS
-# =========================================================
-feature_col1, feature_col2, feature_col3, feature_col4 = st.columns(4)
-
-with feature_col1:
-    st.markdown(
-        """
-        <div class="feature-card">
-            <div class="feature-icon">🎙️</div>
-            <h4>Transcription</h4>
-            <p class="small-text">
-                Converts lecture speech into searchable text using Whisper.
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-with feature_col2:
-    st.markdown(
-        """
-        <div class="feature-card">
-            <div class="feature-icon">🧠</div>
-            <h4>Study Material</h4>
-            <p class="small-text">
-                Generates notes, key points, keywords and revision content.
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-with feature_col3:
-    st.markdown(
-        """
-        <div class="feature-card">
-            <div class="feature-icon">❓</div>
-            <h4>Quiz & Flashcards</h4>
-            <p class="small-text">
-                Tests understanding and provides interactive revision cards.
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-with feature_col4:
-    st.markdown(
-        """
-        <div class="feature-card">
-            <div class="feature-icon">💬</div>
-            <h4>Lecture Chat</h4>
-            <p class="small-text">
-                Answers questions using only the processed lecture transcript.
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-st.divider()
-
-
 
 
 # =========================================================
@@ -680,6 +994,7 @@ if st.session_state.processed:
         notes_tab,
         quiz_tab,
         flashcards_tab,
+        exam_tab,
         chat_tab,
         audio_tab,
         downloads_tab,
@@ -689,6 +1004,7 @@ if st.session_state.processed:
             "🧠 Study Notes",
             "❓ Interactive Quiz",
             "🗂️ Flashcards",
+            "🎓 Exam Mode",
             "💬 Ask DeepDive",
             "🎵 Audio",
             "📥 Export",
@@ -1033,6 +1349,124 @@ if st.session_state.processed:
 
 
     # =====================================================
+    # EXAM MODE TAB
+    # =====================================================
+    with exam_tab:
+        st.write("### 🎓 Exam Preparation Mode")
+        st.caption(
+            "Generate exam-ready questions and answers only when needed. "
+            "This keeps the main video processing faster."
+        )
+
+        exam_col1, exam_col2 = st.columns([2, 1])
+
+        with exam_col1:
+            exam_difficulty = st.selectbox(
+                "Difficulty level",
+                ["Easy", "Balanced", "Advanced"],
+                index=["Easy", "Balanced", "Advanced"].index(
+                    st.session_state.exam_difficulty
+                ),
+                key="exam_difficulty_selector",
+            )
+
+        with exam_col2:
+            include_answers = st.toggle(
+                "Include model answers",
+                value=True,
+                key="exam_include_answers",
+            )
+
+        st.info(
+            "Exam Mode creates 2-mark, 5-mark, 10-mark, viva and MCQ "
+            "questions directly from the processed lecture."
+        )
+
+        generate_exam = st.button(
+            "✨ Generate Exam Material",
+            type="primary",
+            use_container_width=True,
+            key="generate_exam_material_button",
+        )
+
+        if generate_exam:
+            st.session_state.exam_difficulty = exam_difficulty
+
+            answer_instruction = (
+                "Include a clear model answer immediately after every question."
+                if include_answers
+                else "Do not include answers. Produce questions only."
+            )
+
+            exam_prompt = f"""
+Create exam preparation material using ONLY the lecture transcript.
+
+Difficulty: {exam_difficulty}
+{answer_instruction}
+
+Return well-formatted Markdown with exactly these sections:
+
+# 🎓 Exam Preparation Pack
+## 1. Two-Mark Questions
+Create 8 concise questions.
+
+## 2. Five-Mark Questions
+Create 5 descriptive questions.
+
+## 3. Ten-Mark Questions
+Create 3 detailed long-answer questions.
+
+## 4. Viva Questions
+Create 10 short viva questions.
+
+## 5. Multiple-Choice Questions
+Create 10 MCQs with four options labelled A, B, C and D.
+If answers are requested, clearly state the correct option and give a one-line explanation.
+
+Rules:
+- Stay strictly grounded in the transcript.
+- Do not invent topics not covered in the lecture.
+- Avoid duplicate questions.
+- Use simple, exam-ready language.
+- For model answers, match the depth to the marks allocated.
+"""
+
+            try:
+                with st.spinner("Deep Dive is preparing your exam pack..."):
+                    st.session_state.exam_material = answer_from_transcript(
+                        transcript=st.session_state.transcript,
+                        question=exam_prompt,
+                        chat_history=[],
+                    )
+
+                st.toast("Exam preparation pack generated!", icon="🎓")
+
+            except (ValueError, ConnectionError, TimeoutError) as error:
+                st.error(str(error))
+            except Exception as error:
+                st.error(f"Exam Mode failed: {error}")
+
+        if st.session_state.exam_material:
+            st.divider()
+            st.markdown(st.session_state.exam_material)
+
+            exam_file_stem = Path(st.session_state.video_name).stem
+            st.download_button(
+                "📥 Download Exam Preparation Pack",
+                data=st.session_state.exam_material,
+                file_name=f"{exam_file_stem}_exam_pack.md",
+                mime="text/markdown",
+                use_container_width=True,
+                key="download_exam_pack_exam_tab",
+            )
+        else:
+            st.caption(
+                "No exam pack has been generated yet. Click the button above after "
+                "processing a lecture."
+            )
+
+
+    # =====================================================
     # CHAT WITH VIDEO TAB
     # =====================================================
     with chat_tab:
@@ -1153,7 +1587,7 @@ if st.session_state.processed:
 
         download_col1, download_col2 = st.columns(2)
         download_col3, download_col4 = st.columns(2)
-        download_col5, _ = st.columns(2)
+        download_col5, download_col6 = st.columns(2)
 
         with download_col1:
             st.download_button(
@@ -1192,6 +1626,18 @@ if st.session_state.processed:
             )
 
         with download_col5:
+            if st.session_state.exam_material:
+                st.download_button(
+                    label="🎓 Download Exam Pack",
+                    data=st.session_state.exam_material,
+                    file_name=f"{video_stem}_exam_pack.md",
+                    mime="text/markdown",
+                    key="download_exam_pack_downloads_tab",
+                )
+            else:
+                st.info("Generate an Exam Pack from the Exam Mode tab.")
+
+        with download_col6:
             if (
                 st.session_state.pdf_path
                 and os.path.exists(

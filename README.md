@@ -1,46 +1,82 @@
-# DeepDive AI - Intelligent Video Note Taker
+# 🎓 DeepDive AI – Intelligent Video Learning Assistant
 
-DeepDive AI is an AI-powered learning assistant that converts lecture videos into structured study material. It automatically generates transcripts, notes, quizzes, flashcards, PDFs, and provides an interactive chatbot for revision.
+DeepDive AI is an AI-powered learning assistant that converts lecture videos into structured study material using Google Gemini and OpenAI Whisper.
 
-## Features
+---
 
-- Upload lecture videos
-- Automatic audio extraction
-- Speech-to-text transcription using Whisper
-- AI-generated study notes
-- Key point extraction
-- Interactive quiz generation
-- Flashcard generation
-- Lecture chatbot
-- PDF export
-- Clean Streamlit interface
+## 🚀 Live Demo
 
-## Tech Stack
+🔗 https://deepdive-ai-learning-assistant-izcmnuh9ggrnpmt63fyhda.streamlit.app/
+
+---
+
+## ✨ Features
+
+- 🎥 Upload lecture videos
+- 🎙️ Automatic speech-to-text transcription
+- 📝 AI-generated study notes
+- ❓ AI-generated quizzes
+- 🗂️ AI flashcards
+- 💬 Interactive lecture chatbot
+- 📄 PDF study material export
+- ☁️ Fully deployed on Streamlit Cloud
+
+---
+
+## 🛠 Tech Stack
 
 - Python
 - Streamlit
+- Google Gemini API
 - OpenAI Whisper
 - MoviePy
+- FFmpeg
 - ReportLab
-- Torch
-- NumPy
-- Pandas
 
-## Project Workflow
+---
 
-1. Upload lecture video
-2. Extract audio
-3. Generate transcript
-4. Create notes
-5. Generate quiz
-6. Generate flashcards
-7. Chat with lecture
-8. Export PDF
+## 📊 Workflow
 
-## Installation
+Video Upload
+
+↓
+
+Audio Extraction
+
+↓
+
+Whisper Transcription
+
+↓
+
+Gemini AI
+
+↓
+
+Study Notes
+
+Quiz
+
+Flashcards
+
+Chatbot
+
+↓
+
+PDF Export
+
+---
+
+## 📸 Screenshots
+
+(Add screenshots here)
+
+---
+
+## 📦 Installation
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/yourusername/deepdive-ai.git
 
 cd deepdive-ai
 
@@ -49,37 +85,12 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-## Future Improvements
+---
 
-- YouTube URL support
-- Multi-language transcription
-- Cloud deployment
-- Voice-based chatbot
-- User authentication
+## 👨‍💻 Author
 
-## Author
+Samruddhi Bandbuche
 
-Developed as an AI/ML academic project.
-## Screenshots
+BCA Student
 
-### Home
-![Home](screenshots/home.png)
-
-### Notes
-![Notes](screenshots/notes.png)
-
-### Quiz
-![Quiz](screenshots/quiz.png)
-
-### Flashcards
-![Flashcards](screenshots/flashcards.png)
-
-### Transcript
-![Transcript](screenshots/transcript.png)
-
-### audio
-![audio](screenshots/audio.png)
-
-
-### Chatbot
-![Chatbot](screenshots/chat.png)
+Artificial Intelligence & Machine Learning Project
