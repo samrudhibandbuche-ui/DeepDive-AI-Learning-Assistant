@@ -1,3 +1,4 @@
+import html
 import os
 import re
 from pathlib import Path
@@ -91,6 +92,7 @@ def get_default_values() -> dict:
         "processing_time": 0.0,
         "input_source": "Upload Video",
         "youtube_url": "",
+        "uploader_version": 0,
     }
 
 
@@ -138,6 +140,12 @@ def clear_chat() -> None:
     """Clear the chat conversation."""
 
     st.session_state.chat_messages = []
+
+
+def remove_uploaded_video() -> None:
+    """Reset the uploader so the user can select another video."""
+
+    st.session_state.uploader_version += 1
 
 
 def previous_flashcard() -> None:
@@ -281,48 +289,46 @@ def download_youtube_video(
 with st.sidebar:
     st.markdown(
         """
-        <div class="brand-row">
-            <div class="brand-mark">🧠</div>
-            <div>
-                <div class="brand-name">DeepDive AI</div>
-                <div class="brand-tagline">Your intelligent study workspace</div>
-            </div>
+        <div class="sidebar-brand-card">
+            <div class="sidebar-logo-circle">🧠</div>
+            <div class="sidebar-brand-title">DeepDive AI</div>
+            <div class="sidebar-brand-subtitle">Smart Video Learning<br>Platform</div>
+        </div>
+
+        <nav class="sidebar-navigation" aria-label="DeepDive navigation">
+            <a class="sidebar-nav-item active" href="#home-section">⌂ <span>Home</span></a>
+            <a class="sidebar-nav-item" href="#upload-section">☁ <span>Upload</span></a>
+            <a class="sidebar-nav-item" href="#results-section">▤ <span>Notes</span></a>
+            <a class="sidebar-nav-item" href="#results-section">▣ <span>Flashcards</span></a>
+            <a class="sidebar-nav-item" href="#results-section">? <span>Quiz</span></a>
+            <a class="sidebar-nav-item" href="#results-section">◌ <span>Chat</span></a>
+            <a class="sidebar-nav-item" href="#results-section">⇩ <span>Downloads</span></a>
+        </nav>
+
+        <div class="pipeline-card">
+            <div class="pipeline-title">Processing Pipeline</div>
+            <div class="pipeline-step complete"><span class="pipeline-dot">✓</span><span>Upload</span></div>
+            <div class="pipeline-line complete-line"></div>
+            <div class="pipeline-step complete"><span class="pipeline-dot">✓</span><span>Audio Extraction</span></div>
+            <div class="pipeline-line active-line"></div>
+            <div class="pipeline-step active-step"><span class="pipeline-dot">●</span><span>Transcription</span></div>
+            <div class="pipeline-line"></div>
+            <div class="pipeline-step"><span class="pipeline-dot empty-dot"></span><span>Notes Generation</span></div>
+            <div class="pipeline-line"></div>
+            <div class="pipeline-step"><span class="pipeline-dot empty-dot"></span><span>Quiz Generation</span></div>
+            <div class="pipeline-line"></div>
+            <div class="pipeline-step"><span class="pipeline-dot empty-dot"></span><span>Flashcards</span></div>
+            <div class="pipeline-line"></div>
+            <div class="pipeline-step"><span class="pipeline-dot empty-dot"></span><span>PDF Export</span></div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    st.success("● System ready", icon="✅")
-
-    st.divider()
-
-    st.write("### Processing Pipeline")
-    st.write("1. 📤 Upload video or paste YouTube URL")
-    st.write("2. 🎵 Extract audio")
-    st.write("3. 🎙️ Generate transcript")
-    st.write("4. 🧠 Create study notes")
-    st.write("5. ❓ Generate quiz")
-    st.write("6. 🗂️ Generate flashcards")
-    st.write("7. 💬 Chat with the lecture")
-    st.write("8. 📄 Create PDF")
-
-    st.divider()
-
-    st.write("### Technologies")
-    st.write("- Python")
-    st.write("- Streamlit")
-    st.write("- OpenAI Whisper")
-    st.write("- Google Gemini")
-    st.write("- MoviePy")
-    st.write("- FFmpeg")
-    st.write("- ReportLab")
-    st.write("- yt-dlp")
-
-    st.divider()
-
     if st.button(
         "🗑️ Clear Current Results",
         key="clear_results_button",
+        use_container_width=True,
     ):
         clear_results()
         st.rerun()
@@ -331,6 +337,7 @@ with st.sidebar:
 # =========================================================
 # HEADER
 # =========================================================
+st.markdown('<div id="home-section"></div>', unsafe_allow_html=True)
 st.markdown(
     """
     <div class="hero">
@@ -354,116 +361,181 @@ st.markdown(
 # =========================================================
 # VIDEO INPUT
 # =========================================================
-st.markdown('<div class="section-label">Start here</div>', unsafe_allow_html=True)
-st.write("## 🎬 Start a New Deep Dive")
-st.caption("Upload a lecture file or paste a public YouTube link. DeepDive will build the complete learning pack for you.")
-
-input_source = st.radio(
-    "Select input method",
-    options=["Upload Video", "YouTube URL"],
-    horizontal=True,
-    key="input_source",
-)
+st.markdown('<div id="upload-section"></div>', unsafe_allow_html=True)
 
 video_path = ""
 video_name = ""
 generate_clicked = False
 
-if input_source == "Upload Video":
-    uploaded_video = st.file_uploader(
-        "Choose a video file",
-        type=["mp4", "mov", "avi", "mkv"],
-        help="Supported formats: MP4, MOV, AVI and MKV. Short videos are faster to process.",
-        key="lecture_video_uploader",
-    )
+with st.container(border=True):
+    st.markdown('<div class="upload-card-marker"></div>', unsafe_allow_html=True)
 
-    if uploaded_video is not None:
-        video_path = os.path.join("uploads", uploaded_video.name)
-        video_name = uploaded_video.name
+    upload_heading_col, upload_method_col = st.columns([1.25, 1])
 
-        with open(video_path, "wb") as video_file:
-            video_file.write(uploaded_video.getbuffer())
-
-        video_column, information_column = st.columns([2, 1])
-
-        with video_column:
-            st.write("### Video Preview")
-            st.video(video_path)
-
-        with information_column:
-            st.write("### Video Information")
-            file_size_mb = uploaded_video.size / (1024 * 1024)
-
-            st.markdown(
-                f"""
-                <div class="status-card">
-                    <b>Input source</b><br>
-                    Uploaded file<br><br>
-
-                    <b>File name</b><br>
-                    {uploaded_video.name}<br><br>
-
-                    <b>File size</b><br>
-                    {file_size_mb:.2f} MB<br><br>
-
-                    <b>Status</b><br>
-                    Ready for processing
+    with upload_heading_col:
+        st.markdown(
+            """
+            <div class="upload-heading-row">
+                <div class="upload-heading-icon">🎬</div>
+                <div>
+                    <div class="upload-heading-title">Start a New DeepDive</div>
+                    <div class="upload-heading-subtitle">
+                        Upload a lecture video or paste a YouTube link to get
+                        detailed study materials.
+                    </div>
                 </div>
-                """,
-                unsafe_allow_html=True,
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with upload_method_col:
+        input_source = st.radio(
+            "Select input method",
+            options=["Upload Video", "YouTube URL"],
+            horizontal=True,
+            key="input_source",
+            label_visibility="collapsed",
+        )
+
+    upload_content_col, upload_info_col = st.columns([3.15, 1.25], gap="large")
+
+    uploaded_video = None
+    youtube_url = ""
+    file_size_mb = None
+
+    with upload_content_col:
+        if input_source == "Upload Video":
+            uploaded_video = st.file_uploader(
+                "Drag & drop your video here",
+                type=["mp4", "mov", "avi", "mkv"],
+                help="Supported formats: MP4, MOV, AVI and MKV. Short videos are faster to process.",
+                key=f"lecture_video_uploader_{st.session_state.uploader_version}",
             )
 
-            generate_clicked = st.button(
-                "🚀 Generate Study Material",
-                type="primary",
-                key="generate_uploaded_material_button",
-            )
-    else:
-        st.info("Upload an MP4, MOV, AVI or MKV video to begin.")
+            if uploaded_video is not None:
+                video_path = os.path.join("uploads", uploaded_video.name)
+                video_name = uploaded_video.name
+                file_size_mb = uploaded_video.size / (1024 * 1024)
 
-else:
-    youtube_url = st.text_input(
-        "Paste a YouTube video URL",
-        placeholder="https://www.youtube.com/watch?v=...",
-        key="youtube_url",
-        help="Use a public YouTube video. Private, members-only or restricted videos may not download.",
-    ).strip()
+                with open(video_path, "wb") as video_file:
+                    video_file.write(uploaded_video.getbuffer())
 
-    if youtube_url:
-        if is_valid_youtube_url(youtube_url):
-            preview_column, information_column = st.columns([2, 1])
+                safe_uploaded_name = html.escape(uploaded_video.name)
 
-            with preview_column:
-                st.write("### YouTube Preview")
-                st.video(youtube_url)
-
-            with information_column:
-                st.write("### URL Information")
                 st.markdown(
-                    """
-                    <div class="status-card">
-                        <b>Input source</b><br>
-                        YouTube URL<br><br>
-
-                        <b>Status</b><br>
-                        Ready to download and process<br><br>
-
-                        <b>Note</b><br>
-                        Processing begins after the video is downloaded.
+                    f"""
+                    <div class="custom-uploaded-file-card">
+                        <div class="custom-uploaded-file-icon">🎬</div>
+                        <div class="custom-uploaded-file-copy">
+                            <div class="custom-uploaded-file-label">Uploaded lecture</div>
+                            <div class="custom-uploaded-file-name">{safe_uploaded_name}</div>
+                            <div class="custom-uploaded-file-meta">
+                                <span>▧ {file_size_mb:.2f} MB</span>
+                                <span class="custom-ready-pill">● Ready to analyze</span>
+                            </div>
+                        </div>
                     </div>
                     """,
                     unsafe_allow_html=True,
                 )
 
+                file_action_col, preview_action_col = st.columns([1, 2])
+
+                with file_action_col:
+                    if st.button(
+                        "🗑 Remove file",
+                        key="remove_uploaded_video_button",
+                        use_container_width=True,
+                    ):
+                        remove_uploaded_video()
+                        st.rerun()
+
+                with preview_action_col:
+                    with st.expander("▶ Preview uploaded video"):
+                        st.video(video_path)
+
                 generate_clicked = st.button(
-                    "🚀 Analyze YouTube Video",
+                    "✦ Analyze Video",
+                    type="primary",
+                    key="generate_uploaded_material_button",
+                    use_container_width=True,
+                )
+            else:
+                st.caption("Supports MP4, MOV, AVI and MKV files.")
+                st.button(
+                    "✦ Analyze Video",
+                    type="primary",
+                    key="disabled_uploaded_material_button",
+                    use_container_width=True,
+                    disabled=True,
+                )
+
+        else:
+            youtube_url = st.text_input(
+                "Paste a YouTube video URL",
+                placeholder="https://www.youtube.com/watch?v=...",
+                key="youtube_url",
+                help="Use a public YouTube video. Private, members-only or restricted videos may not download.",
+            ).strip()
+
+            if youtube_url and is_valid_youtube_url(youtube_url):
+                with st.expander("Preview YouTube video"):
+                    st.video(youtube_url)
+
+                generate_clicked = st.button(
+                    "✦ Analyze Video",
                     type="primary",
                     key="generate_youtube_material_button",
+                    use_container_width=True,
                 )
+            elif youtube_url:
+                st.error("Enter a valid YouTube URL, such as https://youtu.be/VIDEO_ID.")
+                st.button(
+                    "✦ Analyze Video",
+                    type="primary",
+                    key="disabled_invalid_youtube_button",
+                    use_container_width=True,
+                    disabled=True,
+                )
+            else:
+                st.caption("Paste a public YouTube link above to begin.")
+                st.button(
+                    "✦ Analyze Video",
+                    type="primary",
+                    key="disabled_youtube_material_button",
+                    use_container_width=True,
+                    disabled=True,
+                )
+
+    with upload_info_col:
+        if input_source == "Upload Video" and uploaded_video is not None:
+            display_name = html.escape(uploaded_video.name)
+            display_size = f"{file_size_mb:.2f} MB"
+            display_status = "Ready"
+        elif input_source == "YouTube URL" and youtube_url and is_valid_youtube_url(youtube_url):
+            display_name = "YouTube video"
+            display_size = "Online source"
+            display_status = "Ready"
         else:
-            st.error("Enter a valid YouTube URL, such as https://youtu.be/VIDEO_ID.")
-    else:
-        st.info("Paste a public YouTube video URL to begin.")
+            display_name = "—"
+            display_size = "—"
+            display_status = "Not started"
+
+        st.markdown(
+            f"""
+            <div class="video-info-card">
+                <div class="video-info-row"><span>◷&nbsp; Video Name</span><strong>{display_name}</strong></div>
+                <div class="video-info-row"><span>◷&nbsp; Duration</span><strong>—</strong></div>
+                <div class="video-info-row"><span>▧&nbsp; File Size</span><strong>{display_size}</strong></div>
+                <div class="video-info-row status-row">
+                    <span>◷&nbsp; Status</span>
+                    <strong><i class="status-indicator"></i>{display_status}</strong>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
 
 if generate_clicked:
@@ -550,8 +622,6 @@ if generate_clicked:
         st.error(f"Processing failed: {error}")
 
 
-
-
 # =========================================================
 # FEATURE CARDS
 # =========================================================
@@ -623,6 +693,7 @@ st.divider()
 # RESULTS DASHBOARD
 # =========================================================
 if st.session_state.processed:
+    st.markdown('<div id="results-section"></div>', unsafe_allow_html=True)
     st.divider()
 
     st.markdown('<div class="section-label">Learning analytics</div>', unsafe_allow_html=True)

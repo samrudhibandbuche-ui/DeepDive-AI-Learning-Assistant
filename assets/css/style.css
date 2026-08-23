@@ -9,7 +9,7 @@
   --yellow: #fff3d6;
   --pink: #fce7eb;
   --peach: #fde8dc;
-  --coral: #ef7f73;
+  --coral: #7c6ee6;
   --teal: #173f3a;
   --muted: #68817c;
   --border: #e6dfd5;
@@ -188,9 +188,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .feature-card {
-    min-height: 135px;
-    padding: 16px;
-    background: var(--card);
+  min-height: 160px;
+  padding: 1.25rem;
+  background: var(--card);
 }
 
 .feature-card:hover,
@@ -200,19 +200,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .feature-icon {
-  font-size: 1.4rem;
-  margin-bottom: 0.4rem;
-}
-.feature-card h4 {
-    font-size: 1.15rem !important;
-    margin-top: 0.25rem;
-    margin-bottom: 0.45rem;
+  font-size: 1.8rem;
+  margin-bottom: .55rem;
 }
 
-.feature-card .small-text {
-    font-size: 0.84rem;
-    line-height: 1.45;
-}
 .small-text {
   color: #5f7772 !important;
   font-size: .92rem;
@@ -319,9 +310,9 @@ div.stDownloadButton > button:hover {
 div.stButton > button[kind="primary"],
 button[kind="primary"] {
   color: #ffffff !important;
-  background: linear-gradient(135deg, #ef8f82, #dd7469) !important;
+  background: linear-gradient(100deg, #8b6fe8 0%, #6f8fe9 52%, #55cdb0 100%) !important;
   border: none !important;
-  box-shadow: 0 10px 24px rgba(221,116,105,.24) !important;
+  box-shadow: 0 11px 25px rgba(111, 108, 218, .23) !important;
 }
 
 div.stButton > button[kind="primary"] *,
@@ -532,4 +523,552 @@ button[kind="primary"] *,
   .main-title {
     font-size: 2.75rem;
   }
+}
+
+
+/* ========================================================
+   FINAL SIDEBAR + UPLOAD REDESIGN
+   ======================================================== */
+
+[data-testid="stSidebar"] {
+  min-width: 265px;
+  background: linear-gradient(180deg, #f5fffb 0%, #eaf8f3 100%) !important;
+  border-right: 1px solid rgba(45, 86, 78, 0.08);
+}
+
+[data-testid="stSidebar"] > div:first-child {
+  padding: 0.7rem 0.7rem 1.3rem;
+}
+
+.sidebar-brand-card {
+  margin: 0.25rem 0 1rem;
+  padding: 1.35rem 1rem 1.15rem;
+  text-align: center;
+  border: 1px solid rgba(57, 95, 87, 0.08);
+  border-radius: 19px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 10px 28px rgba(71, 107, 98, 0.08);
+}
+
+.sidebar-logo-circle {
+  width: 74px;
+  height: 74px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 0.75rem;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #e4f4ed, #f2ecff);
+  font-size: 2.05rem;
+}
+
+.sidebar-brand-title {
+  color: #17223f !important;
+  font-family: "Space Grotesk", sans-serif !important;
+  font-size: 1.52rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.sidebar-brand-subtitle {
+  margin-top: 0.55rem;
+  color: #63718a !important;
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.sidebar-navigation {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 1rem;
+}
+
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 43px;
+  padding: 0.55rem 0.9rem;
+  border-radius: 13px;
+  color: #243b52 !important;
+  text-decoration: none !important;
+  font-family: "Outfit", sans-serif !important;
+  font-size: 0.92rem;
+  font-weight: 600;
+  transition: 0.16s ease;
+}
+
+.sidebar-nav-item:hover {
+  color: #176d5d !important;
+  background: rgba(207, 243, 229, 0.65);
+  transform: translateX(2px);
+}
+
+.sidebar-nav-item.active {
+  color: #16735f !important;
+  background: linear-gradient(90deg, #d5f5e8, #def7eb);
+}
+
+.sidebar-nav-item span {
+  color: inherit !important;
+}
+
+.pipeline-card {
+  margin-top: 0.55rem;
+  padding: 1rem 1rem 1.05rem;
+  border: 1px solid rgba(57, 95, 87, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 9px 24px rgba(71, 107, 98, 0.07);
+}
+
+.pipeline-title {
+  margin-bottom: 0.85rem;
+  color: #59677f !important;
+  font-family: "Outfit", sans-serif !important;
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.pipeline-step {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 24px;
+  color: #65728a !important;
+  font-size: 0.77rem;
+}
+
+.pipeline-step span:last-child {
+  color: inherit !important;
+}
+
+.pipeline-dot {
+  width: 15px;
+  height: 15px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: white !important;
+  background: #bfc9d5;
+  font-size: 0.62rem;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.pipeline-step.complete .pipeline-dot {
+  background: #36c88d;
+}
+
+.pipeline-step.active-step,
+.pipeline-step.active-step span:last-child {
+  color: #775ede !important;
+}
+
+.pipeline-step.active-step .pipeline-dot {
+  border: 3px solid #8c74ea;
+  color: #8c74ea !important;
+  background: #ffffff;
+  font-size: 0.38rem;
+}
+
+.empty-dot {
+  border: 2px solid #ccd4df;
+  background: #ffffff;
+}
+
+.pipeline-line {
+  width: 2px;
+  height: 10px;
+  margin-left: 6px;
+  background: #d6dde5;
+}
+
+.pipeline-line.complete-line {
+  background: #36c88d;
+}
+
+.pipeline-line.active-line {
+  background: linear-gradient(#36c88d, #8c74ea);
+}
+
+/* Upload shell */
+[data-testid="stVerticalBlockBorderWrapper"]:has(.upload-card-marker) {
+  padding: 1.45rem 1.5rem 1.25rem !important;
+  border: 1px solid rgba(71, 78, 111, 0.08) !important;
+  border-radius: 24px !important;
+  background: rgba(255, 255, 255, 0.91) !important;
+  box-shadow: 0 14px 38px rgba(73, 75, 98, 0.08) !important;
+}
+
+.upload-card-marker {
+  height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.upload-heading-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-height: 74px;
+}
+
+.upload-heading-icon {
+  flex: 0 0 auto;
+  width: 72px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #eee9ff, #f8f5ff);
+  font-size: 2rem;
+}
+
+.upload-heading-title {
+  color: #26314b !important;
+  font-family: "Outfit", sans-serif !important;
+  font-size: 1.26rem;
+  font-weight: 700;
+}
+
+.upload-heading-subtitle {
+  max-width: 470px;
+  margin-top: 0.28rem;
+  color: #65718b !important;
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+/* Only the input-source selector; quiz radio groups remain unchanged. */
+div[role="radiogroup"][aria-label="Select input method"] {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem !important;
+  margin-top: 0.55rem;
+}
+
+div[role="radiogroup"][aria-label="Select input method"] > label {
+  width: auto !important;
+  min-height: 48px;
+  padding: 0.65rem 0.9rem !important;
+  justify-content: center;
+  border: 1px solid #e3e0ea !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  box-shadow: 0 5px 16px rgba(62, 66, 91, 0.05);
+}
+
+div[role="radiogroup"][aria-label="Select input method"] > label:has(input:checked) {
+  border-color: #9b86ec !important;
+  background: #faf8ff !important;
+  box-shadow: 0 0 0 2px rgba(155, 134, 236, 0.10);
+}
+
+[data-testid="stFileUploaderDropzone"] {
+  min-height: 155px !important;
+  padding: 1.15rem !important;
+  border: 1.5px solid #d9d9e8 !important;
+  border-radius: 15px !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
+}
+
+[data-testid="stFileUploaderDropzone"] button {
+  background: linear-gradient(135deg, #9176e8, #7659db) !important;
+  border-radius: 10px !important;
+}
+
+.video-info-card {
+  margin-top: 0.15rem;
+  overflow: hidden;
+  border: 1px solid #e2e5e9;
+  border-radius: 15px;
+  background: linear-gradient(145deg, #fbfefe, #f5fbf9);
+}
+
+.video-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  min-height: 48px;
+  padding: 0.55rem 0.85rem;
+  border-bottom: 1px solid #e5e9ec;
+  color: #59677f !important;
+  font-size: 0.8rem;
+}
+
+.video-info-row:last-child {
+  border-bottom: none;
+}
+
+.video-info-row span,
+.video-info-row strong {
+  color: inherit !important;
+}
+
+.video-info-row strong {
+  max-width: 52%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 550;
+}
+
+.status-row strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.status-indicator {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #8e73ea;
+}
+
+[data-testid="stVerticalBlockBorderWrapper"]:has(.upload-card-marker) div.stButton > button[kind="primary"] {
+  min-height: 51px;
+  background: linear-gradient(90deg, #8870ea 0%, #70a7db 48%, #48d5ac 100%) !important;
+  border-radius: 11px !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 900px) {
+  [data-testid="stSidebar"] {
+    min-width: auto;
+  }
+
+  .upload-heading-row {
+    align-items: flex-start;
+  }
+
+  div[role="radiogroup"][aria-label="Select input method"] {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* =========================================================
+   DEEPDIVE VIBRANT UPLOAD UI — SINGLE SOURCE OF TRUTH
+   ========================================================= */
+
+:root {
+    --dd-violet: #8b6fe8;
+    --dd-indigo: #667ee8;
+    --dd-aqua: #55cdb0;
+    --dd-violet-light: #f0ebff;
+    --dd-mint-light: #e9f8f3;
+}
+
+/* Hide Streamlit's uploaded-file chip and its awkward add/remove controls.
+   The Python app renders a custom file card instead. */
+[data-testid="stFileUploader"]:has([data-testid="stFileUploaderFile"])
+[data-testid="stFileUploaderFile"] {
+    display: none !important;
+}
+
+[data-testid="stFileUploader"]:has([data-testid="stFileUploaderFile"])
+button {
+    display: none !important;
+}
+
+/* Keep the empty uploader visible and colourful before a file is chosen. */
+[data-testid="stFileUploaderDropzone"] {
+    min-height: 160px !important;
+    border: 1.5px dashed #b7a6ef !important;
+    border-radius: 18px !important;
+    background:
+        radial-gradient(circle at 15% 15%, rgba(255,255,255,.86), transparent 30%),
+        linear-gradient(135deg, #f1edff 0%, #edf4ff 48%, #e7f8f2 100%) !important;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.65) !important;
+}
+
+[data-testid="stFileUploaderDropzone"]:hover {
+    border-color: #8b6fe8 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px rgba(113, 101, 204, .13) !important;
+}
+
+[data-testid="stFileUploaderDropzone"] button {
+    display: inline-flex !important;
+    min-width: 132px !important;
+    min-height: 43px !important;
+    border: none !important;
+    border-radius: 12px !important;
+    background: linear-gradient(100deg, #8b6fe8, #6f8fe9) !important;
+    color: #ffffff !important;
+    box-shadow: 0 9px 20px rgba(111, 108, 218, .22) !important;
+}
+
+[data-testid="stFileUploaderDropzone"] button * {
+    color: #ffffff !important;
+}
+
+/* Custom uploaded-file card */
+.custom-uploaded-file-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: .85rem 0 .75rem;
+    padding: 1.05rem 1.15rem;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,.52);
+    border-radius: 18px;
+    background:
+        radial-gradient(circle at 92% 10%, rgba(255,255,255,.19), transparent 24%),
+        linear-gradient(105deg, #9174e9 0%, #7188e8 52%, #56cdb0 100%);
+    box-shadow: 0 14px 28px rgba(104, 102, 199, .21);
+}
+
+.custom-uploaded-file-card,
+.custom-uploaded-file-card * {
+    color: #ffffff !important;
+}
+
+.custom-uploaded-file-icon {
+    flex: 0 0 auto;
+    width: 54px;
+    height: 54px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(255,255,255,.35);
+    border-radius: 15px;
+    background: rgba(255,255,255,.18);
+    font-size: 1.55rem;
+}
+
+.custom-uploaded-file-copy {
+    min-width: 0;
+    flex: 1;
+}
+
+.custom-uploaded-file-label {
+    margin-bottom: .12rem;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .10em;
+    text-transform: uppercase;
+    opacity: .86;
+}
+
+.custom-uploaded-file-name {
+    overflow: hidden;
+    font-family: "Outfit", sans-serif !important;
+    font-size: 1rem;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.custom-uploaded-file-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .65rem;
+    margin-top: .36rem;
+    font-size: .78rem;
+    opacity: .94;
+}
+
+.custom-ready-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: .24rem .55rem;
+    border-radius: 999px;
+    background: rgba(255,255,255,.18);
+    font-weight: 600;
+}
+
+/* Remove-file button */
+.st-key-remove_uploaded_video_button button {
+    min-height: 42px !important;
+    border: 1px solid #d9d0f3 !important;
+    border-radius: 12px !important;
+    background: #f5f1ff !important;
+    color: #6954bf !important;
+    box-shadow: none !important;
+}
+
+.st-key-remove_uploaded_video_button button * {
+    color: #6954bf !important;
+}
+
+.st-key-remove_uploaded_video_button button:hover {
+    border-color: #a893ee !important;
+    background: #ece5ff !important;
+}
+
+/* Preview expander */
+[data-testid="stExpander"] {
+    border: 1px solid #ded9ee !important;
+    border-radius: 14px !important;
+    background: rgba(255,255,255,.92) !important;
+    box-shadow: 0 7px 18px rgba(74, 78, 112, .06) !important;
+}
+
+/* Analyze buttons — vibrant violet/blue/mint, never coral */
+.st-key-generate_uploaded_material_button button,
+.st-key-generate_youtube_material_button button,
+.st-key-disabled_uploaded_material_button button,
+.st-key-disabled_invalid_youtube_button button,
+.st-key-disabled_youtube_material_button button {
+    min-height: 54px !important;
+    border: 0 !important;
+    border-radius: 14px !important;
+    background: linear-gradient(
+        100deg,
+        #8b6fe8 0%,
+        #667ee8 52%,
+        #55cdb0 100%
+    ) !important;
+    color: #ffffff !important;
+    font-family: "Outfit", sans-serif !important;
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    box-shadow: 0 12px 25px rgba(100, 104, 205, .24) !important;
+}
+
+.st-key-generate_uploaded_material_button button *,
+.st-key-generate_youtube_material_button button *,
+.st-key-disabled_uploaded_material_button button *,
+.st-key-disabled_invalid_youtube_button button *,
+.st-key-disabled_youtube_material_button button * {
+    color: #ffffff !important;
+}
+
+.st-key-generate_uploaded_material_button button:hover,
+.st-key-generate_youtube_material_button button:hover {
+    transform: translateY(-2px) !important;
+    filter: saturate(1.08) brightness(1.03);
+    box-shadow: 0 16px 31px rgba(100, 104, 205, .29) !important;
+}
+
+.st-key-disabled_uploaded_material_button button:disabled,
+.st-key-disabled_invalid_youtube_button button:disabled,
+.st-key-disabled_youtube_material_button button:disabled {
+    background: linear-gradient(100deg, #c9bff0, #b8c6eb, #a8dccf) !important;
+    color: rgba(255,255,255,.93) !important;
+    opacity: .76 !important;
+    box-shadow: none !important;
+}
+
+/* Replace remaining coral progress accents. */
+div[data-testid="stProgress"] > div > div {
+    background: linear-gradient(90deg, #8b6fe8, #667ee8, #55cdb0) !important;
+}
+
+@media (max-width: 700px) {
+    .custom-uploaded-file-card {
+        align-items: flex-start;
+    }
+
+    .custom-uploaded-file-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: .35rem;
+    }
 }
