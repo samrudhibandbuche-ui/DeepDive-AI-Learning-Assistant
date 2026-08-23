@@ -69,9 +69,37 @@ PDF Export
 
 ## 📸 Screenshots
 
-(Add screenshots here)
+### Home Page
 
----
+![Deep Dive Home Page](screenshots/Home.png)
+
+### Audio Processing
+
+![Audio Processing](screenshots/audio.png)
+
+### Generated Transcript
+
+![Generated Transcript](screenshots/transcript.png)
+
+### AI-Generated Notes
+
+![AI-Generated Notes](screenshots/notes.png)
+
+### Quiz
+
+![Generated Quiz](screenshots/quiz.png)
+
+### Flashcards
+
+![Generated Flashcards](screenshots/flashcards.png)
+
+### Lecture Chat
+
+![Lecture Chat](screenshots/chat.png)
+
+### Download Study Materials
+
+![Download Options](screenshots/downloads.png)
 
 ## 📦 Installation
 
