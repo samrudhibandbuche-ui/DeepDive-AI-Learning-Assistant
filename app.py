@@ -8,6 +8,7 @@ import streamlit as st
 import yt_dlp
 
 from services.chat_service import answer_from_transcript
+from services.demo_service import answer_demo_question, get_demo_results
 from services.processing_service import process_video
 from utils.helpers import create_directories
 
@@ -93,6 +94,7 @@ def get_default_values() -> dict:
         "input_source": "Upload Video",
         "youtube_url": "",
         "uploader_version": 0,
+        "demo_mode": False,
     }
 
 
@@ -172,6 +174,61 @@ def toggle_flashcard() -> None:
     st.session_state.flashcard_revealed = (
         not st.session_state.flashcard_revealed
     )
+
+
+def save_results_to_session(results: dict) -> None:
+    """Store a generated or demonstration learning pack in session state."""
+
+    st.session_state.processed = True
+    st.session_state.transcript = results["transcript"]
+    st.session_state.study_notes = results["study_notes"]
+    st.session_state.quiz = results["quiz"]
+    st.session_state.quiz_text = results["quiz_text"]
+    st.session_state.flashcards = results["flashcards"]
+    st.session_state.flashcards_text = results["flashcards_text"]
+    st.session_state.transcript_file = results["transcript_file"]
+    st.session_state.notes_path = results["notes_path"]
+    st.session_state.quiz_path = results["quiz_path"]
+    st.session_state.flashcards_path = results["flashcards_path"]
+    st.session_state.pdf_path = results["pdf_path"]
+    st.session_state.audio_path = results["audio_path"]
+    st.session_state.video_name = results["video_name"]
+    st.session_state.processing_time = results["processing_time"]
+    st.session_state.demo_mode = bool(results.get("demo_mode", False))
+    st.session_state.quiz_submitted = False
+    st.session_state.quiz_score = 0
+    st.session_state.flashcard_index = 0
+    st.session_state.flashcard_revealed = False
+    st.session_state.chat_messages = []
+
+
+def is_quota_error(error: Exception) -> bool:
+    """Recognize Gemini quota/rate-limit errors without exposing raw details."""
+
+    message = str(error).lower()
+    quota_markers = (
+        "resource_exhausted",
+        "quota exceeded",
+        "rate limit",
+        "429",
+        "generativelanguage.googleapis.com",
+    )
+    return any(marker in message for marker in quota_markers)
+
+
+def show_processing_error(error: Exception) -> None:
+    """Show a presentation-safe message for processing failures."""
+
+    if is_quota_error(error):
+        st.error(
+            "The AI service has reached its current request limit. "
+            "Please try again after the quota resets or use Presentation Demo."
+        )
+    else:
+        st.error(
+            "The video could not be processed right now. "
+            "Please check the input and try again."
+        )
 
 
 def is_valid_youtube_url(url: str) -> bool:
@@ -392,7 +449,7 @@ with st.container(border=True):
     with upload_method_col:
         input_source = st.radio(
             "Select input method",
-            options=["Upload Video", "YouTube URL"],
+            options=["Upload Video", "YouTube URL", "Presentation Demo"],
             horizontal=True,
             key="input_source",
             label_visibility="collapsed",
@@ -471,7 +528,7 @@ with st.container(border=True):
                     disabled=True,
                 )
 
-        else:
+        elif input_source == "YouTube URL":
             youtube_url = st.text_input(
                 "Paste a YouTube video URL",
                 placeholder="https://www.youtube.com/watch?v=...",
@@ -508,6 +565,18 @@ with st.container(border=True):
                     disabled=True,
                 )
 
+        else:
+            st.info(
+                "Presentation Demo loads a complete sample learning pack "
+                "without using Gemini, YouTube or an internet connection."
+            )
+            generate_clicked = st.button(
+                "✦ Load Demo Learning Pack",
+                type="primary",
+                key="load_presentation_demo_button",
+                use_container_width=True,
+            )
+
     with upload_info_col:
         if input_source == "Upload Video" and uploaded_video is not None:
             display_name = html.escape(uploaded_video.name)
@@ -516,6 +585,10 @@ with st.container(border=True):
         elif input_source == "YouTube URL" and youtube_url and is_valid_youtube_url(youtube_url):
             display_name = "YouTube video"
             display_size = "Online source"
+            display_status = "Ready"
+        elif input_source == "Presentation Demo":
+            display_name = "Python Basics Demo"
+            display_size = "Offline sample"
             display_status = "Ready"
         else:
             display_name = "—"
@@ -549,52 +622,38 @@ if generate_clicked:
         progress_bar.progress(max(0, min(100, progress)))
 
     try:
-        if input_source == "YouTube URL":
-            video_path, video_name, youtube_info = download_youtube_video(
-                url=st.session_state.youtube_url,
+        if input_source == "Presentation Demo":
+            results = get_demo_results(
+                status_callback=update_status,
+                progress_callback=update_progress,
+            )
+        else:
+            if input_source == "YouTube URL":
+                video_path, video_name, youtube_info = download_youtube_video(
+                    url=st.session_state.youtube_url,
+                    status_callback=update_status,
+                    progress_callback=update_progress,
+                )
+
+                st.caption(
+                    f"Downloaded: {youtube_info.get('title', video_name)}"
+                    + (
+                        f" • Channel: {youtube_info.get('uploader')}"
+                        if youtube_info.get("uploader")
+                        else ""
+                    )
+                )
+            else:
+                update_progress(5)
+
+            results = process_video(
+                video_path=video_path,
+                video_name=video_name,
                 status_callback=update_status,
                 progress_callback=update_progress,
             )
 
-            st.caption(
-                f"Downloaded: {youtube_info.get('title', video_name)}"
-                + (
-                    f" • Channel: {youtube_info.get('uploader')}"
-                    if youtube_info.get("uploader")
-                    else ""
-                )
-            )
-        else:
-            update_progress(5)
-
-        results = process_video(
-            video_path=video_path,
-            video_name=video_name,
-            status_callback=update_status,
-            progress_callback=update_progress,
-        )
-
-        st.session_state.processed = True
-        st.session_state.transcript = results["transcript"]
-        st.session_state.study_notes = results["study_notes"]
-        st.session_state.quiz = results["quiz"]
-        st.session_state.quiz_text = results["quiz_text"]
-        st.session_state.flashcards = results["flashcards"]
-        st.session_state.flashcards_text = results["flashcards_text"]
-        st.session_state.transcript_file = results["transcript_file"]
-        st.session_state.notes_path = results["notes_path"]
-        st.session_state.quiz_path = results["quiz_path"]
-        st.session_state.flashcards_path = results["flashcards_path"]
-        st.session_state.pdf_path = results["pdf_path"]
-        st.session_state.audio_path = results["audio_path"]
-        st.session_state.video_name = results["video_name"]
-        st.session_state.processing_time = results["processing_time"]
-
-        st.session_state.quiz_submitted = False
-        st.session_state.quiz_score = 0
-        st.session_state.flashcard_index = 0
-        st.session_state.flashcard_revealed = False
-        st.session_state.chat_messages = []
+        save_results_to_session(results)
 
         progress_bar.progress(100)
         status_message.success("🎉 Your complete learning pack is ready!")
@@ -604,22 +663,22 @@ if generate_clicked:
     except ValueError as error:
         progress_bar.empty()
         status_message.empty()
-        st.error(str(error))
+        show_processing_error(error)
 
     except ConnectionError as error:
         progress_bar.empty()
         status_message.empty()
-        st.error(str(error))
+        show_processing_error(error)
 
     except TimeoutError as error:
         progress_bar.empty()
         status_message.empty()
-        st.error(str(error))
+        show_processing_error(error)
 
     except Exception as error:
         progress_bar.empty()
         status_message.empty()
-        st.error(f"Processing failed: {error}")
+        show_processing_error(error)
 
 
 # =========================================================
@@ -1111,9 +1170,14 @@ if st.session_state.processed:
 
         with chat_heading_col:
             st.write("### 💬 Ask DeepDive About the Lecture")
-            st.caption(
-                "Answers are generated by Gemini using only the processed lecture transcript."
-            )
+            if st.session_state.demo_mode:
+                st.caption(
+                    "Presentation Demo answers locally from the sample lecture."
+                )
+            else:
+                st.caption(
+                    "Answers are generated by Gemini using only the processed lecture transcript."
+                )
 
         with clear_chat_col:
             if st.button(
@@ -1155,14 +1219,15 @@ if st.session_state.processed:
 
             try:
                 with st.chat_message("assistant"):
-                    with st.spinner(
-                        "Gemini is reviewing the lecture transcript..."
-                    ):
-                        answer = answer_from_transcript(
-                            transcript=st.session_state.transcript,
-                            question=user_question,
-                            chat_history=previous_history,
-                        )
+                    with st.spinner("Reviewing the lecture transcript..."):
+                        if st.session_state.demo_mode:
+                            answer = answer_demo_question(user_question)
+                        else:
+                            answer = answer_from_transcript(
+                                transcript=st.session_state.transcript,
+                                question=user_question,
+                                chat_history=previous_history,
+                            )
 
                     st.markdown(answer)
 
@@ -1183,9 +1248,15 @@ if st.session_state.processed:
                 st.error(str(error))
 
             except Exception as error:
-                st.error(
-                    f"Chat failed: {error}"
-                )
+                if is_quota_error(error):
+                    st.error(
+                        "The AI chat request limit has been reached. "
+                        "Please try again later or load Presentation Demo."
+                    )
+                else:
+                    st.error(
+                        "Chat is temporarily unavailable. Please try again."
+                    )
 
 
     # =====================================================
