@@ -1072,3 +1072,30 @@ div[data-testid="stProgress"] > div > div {
         gap: .35rem;
     }
 }
+/* =========================================================
+   STREAMLIT SUCCESS TOAST
+   ========================================================= */
+
+div[data-testid="stToast"] {
+    background: #ffffff !important;
+    color: #1f2937 !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 14px !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Toast message text */
+div[data-testid="stToast"] p,
+div[data-testid="stToast"] div {
+    color: #1f2937 !important;
+}
+
+/* Toast close button */
+div[data-testid="stToast"] button {
+    color: #6b7280 !important;
+}
+
+/* Keep success icon visible */
+div[data-testid="stToast"] svg {
+    color: #22c55e !important;
+}
