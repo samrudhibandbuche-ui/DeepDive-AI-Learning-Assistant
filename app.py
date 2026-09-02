@@ -658,7 +658,7 @@ if generate_clicked:
         progress_bar.progress(100)
         status_message.success("🎉 Your complete learning pack is ready!")
         st.toast("Deep Dive completed successfully!", icon="✅")
-        st.balloons()
+        
 
     except ValueError as error:
         progress_bar.empty()
