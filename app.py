@@ -2,11 +2,22 @@ import html
 import os
 import imageio_ffmpeg
 
+# Get FFmpeg bundled with imageio-ffmpeg
 ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
 ffmpeg_dir = os.path.dirname(ffmpeg_path)
 
+# Make FFmpeg available as "ffmpeg"
 os.environ["PATH"] = ffmpeg_dir + os.pathsep + os.environ.get("PATH", "")
 os.environ["FFMPEG_BINARY"] = ffmpeg_path
+
+# Create an "ffmpeg" command if it doesn't already exist
+ffmpeg_command = os.path.join(ffmpeg_dir, "ffmpeg")
+
+if not os.path.exists(ffmpeg_command):
+    try:
+        os.symlink(ffmpeg_path, ffmpeg_command)
+    except FileExistsError:
+        pass
 
 import re
 from pathlib import Path
