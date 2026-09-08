@@ -1,0 +1,11 @@
+Python is a high-level, interpreted programming language known for its clear and readable syntax. It was created by Guido van Rossum and first released in 1991.
+
+Python is popular because it is beginner-friendly, open source, and supported by a large community. Instead of compiling an entire program before execution, the Python interpreter runs the program through the Python runtime.
+
+Variables store values such as text, numbers, and Boolean data. Common built-in data types include strings, integers, floating-point numbers, lists, tuples, dictionaries, and sets.
+
+Python uses indentation to define blocks of code. Conditional statements such as if, elif, and else support decision-making. For loops and while loops repeat instructions. Functions organize reusable logic and are created using the def keyword.
+
+Python is used in web development, automation, data analysis, artificial intelligence, machine learning, scientific computing, and software testing. Its extensive library ecosystem helps developers build applications quickly.
+
+A simple Python program can display output using the print function. Good Python programs use meaningful names, small reusable functions, comments where necessary, and appropriate error handling.

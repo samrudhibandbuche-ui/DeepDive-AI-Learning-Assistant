@@ -1,0 +1,44 @@
+Question 1
+What type of programming language is Python?
+A. High-level interpreted
+B. Low-level compiled
+C. Markup
+D. Database query
+Correct Answer: A. High-level interpreted
+Explanation: The lecture describes Python as a high-level, interpreted language.
+
+Question 2
+Who created Python?
+A. James Gosling
+B. Dennis Ritchie
+C. Guido van Rossum
+D. Bjarne Stroustrup
+Correct Answer: C. Guido van Rossum
+Explanation: Python was created by Guido van Rossum.
+
+Question 3
+What does Python use to define code blocks?
+A. Brackets
+B. Indentation
+C. Semicolons
+D. XML tags
+Correct Answer: B. Indentation
+Explanation: Python uses indentation to define blocks of code.
+
+Question 4
+Which keyword is used to define a function?
+A. func
+B. method
+C. define
+D. def
+Correct Answer: D. def
+Explanation: Python functions are created with the def keyword.
+
+Question 5
+Which is an application of Python mentioned in the lesson?
+A. AI and machine learning
+B. Only hardware design
+C. Only word processing
+D. None of these
+Correct Answer: A. AI and machine learning
+Explanation: The lesson lists AI and machine learning among Python's applications.

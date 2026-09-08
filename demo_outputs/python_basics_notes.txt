@@ -1,0 +1,27 @@
+## Summary
+
+Python is a readable, high-level programming language used across software development, automation, data analysis and artificial intelligence.
+
+## Detailed Notes
+
+### 1. Python basics
+- Python is interpreted, open source and beginner-friendly.
+- Guido van Rossum created Python, which was first released in 1991.
+- Indentation defines code blocks.
+
+### 2. Core building blocks
+- Variables store values.
+- Common data types include strings, integers, floats, lists, tuples, dictionaries and sets.
+- `if`, `elif` and `else` control decisions.
+- `for` and `while` loops repeat instructions.
+- Functions are defined with the `def` keyword.
+
+### 3. Applications
+- Web development and automation
+- Data analysis and scientific computing
+- Artificial intelligence and machine learning
+- Software testing
+
+## Key Takeaway
+
+Python combines simple syntax with a large library ecosystem, allowing beginners and professionals to build useful applications quickly.

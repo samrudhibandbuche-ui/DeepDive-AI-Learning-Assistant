@@ -78,7 +78,7 @@ def process_video_with_retry(
 # PAGE CONFIGURATION
 # =========================================================
 st.set_page_config(
-    page_title="DeepDive AI",
+    page_title="DeepDive ",
     page_icon="🧠",
     layout="wide",
     initial_sidebar_state="expanded",

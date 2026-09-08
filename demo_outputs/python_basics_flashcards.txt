@@ -1,0 +1,19 @@
+Flashcard 1
+Front: What is Python?
+Back: A high-level, interpreted programming language known for readable syntax.
+
+Flashcard 2
+Front: Who created Python?
+Back: Guido van Rossum.
+
+Flashcard 3
+Front: How does Python define code blocks?
+Back: Using indentation.
+
+Flashcard 4
+Front: Which keyword defines a function?
+Back: The def keyword.
+
+Flashcard 5
+Front: Name three Python applications.
+Back: Examples include web development, automation, data analysis, AI and machine learning.

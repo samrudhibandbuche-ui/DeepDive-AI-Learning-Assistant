@@ -1,5 +1,13 @@
 import html
 import os
+import imageio_ffmpeg
+
+ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
+ffmpeg_dir = os.path.dirname(ffmpeg_path)
+
+os.environ["PATH"] = ffmpeg_dir + os.pathsep + os.environ.get("PATH", "")
+os.environ["FFMPEG_BINARY"] = ffmpeg_path
+
 import re
 from pathlib import Path
 from urllib.parse import urlparse
