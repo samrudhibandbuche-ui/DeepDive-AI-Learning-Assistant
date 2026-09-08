@@ -1,5 +1,6 @@
 import json
 import os
+import time
 
 from dotenv import load_dotenv
 from google import genai
@@ -139,7 +140,7 @@ def _validate_quiz(parsed_quiz: dict) -> list[dict]:
 
 
 def generate_quiz(transcript: str) -> list[dict]:
-    """Generate exactly ten MCQs using Gemini."""
+    """Generate exactly ten MCQs using Gemini with automatic retries."""
 
     if not transcript.strip():
         raise ValueError(
@@ -181,46 +182,67 @@ LECTURE TRANSCRIPT:
 {transcript}
 """
 
-    try:
-        client = genai.Client(
-            api_key=GEMINI_API_KEY
-        )
+    client = genai.Client(
+        api_key=GEMINI_API_KEY
+    )
 
-        response = client.models.generate_content(
-            model=MODEL_NAME,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.2,
-                response_mime_type="application/json",
-                response_schema=QUIZ_SCHEMA,
-            ),
-        )
+    max_retries = 3
 
-        raw_quiz = (
-            response.text.strip()
-            if response.text
-            else ""
-        )
-
-        if not raw_quiz:
-            raise ValueError(
-                "Gemini returned an empty quiz."
+    for attempt in range(max_retries):
+        try:
+            response = client.models.generate_content(
+                model=MODEL_NAME,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.2,
+                    response_mime_type="application/json",
+                    response_schema=QUIZ_SCHEMA,
+                ),
             )
 
-        parsed_quiz = json.loads(raw_quiz)
+            raw_quiz = (
+                response.text.strip()
+                if response.text
+                else ""
+            )
 
-        return _validate_quiz(parsed_quiz)
+            if not raw_quiz:
+                raise ValueError(
+                    "Gemini returned an empty quiz."
+                )
 
-    except json.JSONDecodeError as error:
-        raise ValueError(
-            "Gemini returned invalid quiz data. "
-            "Please try again."
-        ) from error
+            parsed_quiz = json.loads(raw_quiz)
 
-    except ValueError:
-        raise
+            return _validate_quiz(parsed_quiz)
 
-    except Exception as error:
-        raise RuntimeError(
-            f"Quiz generation failed: {error}"
-        ) from error
+        except json.JSONDecodeError as error:
+            raise ValueError(
+                "Gemini returned invalid quiz data. "
+                "Please try again."
+            ) from error
+
+        except ValueError:
+            raise
+
+        except Exception as error:
+
+            error_message = str(error)
+
+            # Retry temporary Gemini server errors
+            if (
+                "503" in error_message
+                or "UNAVAILABLE" in error_message
+                or "high demand" in error_message.lower()
+            ):
+                if attempt < max_retries - 1:
+                    time.sleep(5 * (attempt + 1))
+                    continue
+
+            raise RuntimeError(
+                f"Quiz generation failed: {error}"
+            ) from error
+
+    raise RuntimeError(
+        "Quiz generation failed after multiple attempts. "
+        "Please try again."
+    )
