@@ -684,9 +684,11 @@ if generate_clicked:
         show_processing_error(error)
 
     except Exception as error:
-        progress_bar.empty()
-        status_message.empty()
-        show_processing_error(error)
+      progress_bar.empty()
+      status_message.empty()
+
+      st.error("❌ Video processing failed.")
+      st.exception(error)
 
 
 # =========================================================
