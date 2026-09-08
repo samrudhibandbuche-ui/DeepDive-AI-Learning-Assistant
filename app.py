@@ -1,23 +1,28 @@
 import html
 import os
 import imageio_ffmpeg
+import tempfile
 
 # Get FFmpeg bundled with imageio-ffmpeg
 ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
 ffmpeg_dir = os.path.dirname(ffmpeg_path)
 
-# Make FFmpeg available as "ffmpeg"
+# Make FFmpeg available
 os.environ["PATH"] = ffmpeg_dir + os.pathsep + os.environ.get("PATH", "")
 os.environ["FFMPEG_BINARY"] = ffmpeg_path
 
-# Create an "ffmpeg" command if it doesn't already exist
-ffmpeg_command = os.path.join(ffmpeg_dir, "ffmpeg")
+# Create a writable FFmpeg wrapper for Whisper
+ffmpeg_wrapper_dir = os.path.join(tempfile.gettempdir(), "ffmpeg_bin")
+os.makedirs(ffmpeg_wrapper_dir, exist_ok=True)
 
-if not os.path.exists(ffmpeg_command):
-    try:
-        os.symlink(ffmpeg_path, ffmpeg_command)
-    except FileExistsError:
-        pass
+ffmpeg_wrapper = os.path.join(ffmpeg_wrapper_dir, "ffmpeg")
+
+if not os.path.exists(ffmpeg_wrapper):
+    with open(ffmpeg_wrapper, "w") as f:
+        f.write(f'#!/bin/sh\nexec "{ffmpeg_path}" "$@"\n')
+    os.chmod(ffmpeg_wrapper, 0o755)
+
+os.environ["PATH"] = ffmpeg_wrapper_dir + os.pathsep + os.environ["PATH"]
 
 import re
 from pathlib import Path
